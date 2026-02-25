@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Autocross Course Designer</title>
+  <link href="https://api.mapbox.com/mapbox-gl-js/v3.3.0/mapbox-gl.css" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <!-- Mode Selection Banner -->
+  <div id="mode-banner" class="hidden">
+    <div id="mode-choices">
+      <h1 class="banner-title">Autocross Course Designer</h1>
+      <p class="banner-subtitle">Choose how you want to design your course</p>
+      <div class="banner-buttons">
+        <button id="btn-mode-map" class="banner-btn">
+          <span class="banner-icon">&#127758;</span>
+          <span class="banner-btn-label">Draw on Live Map</span>
+          <span class="banner-btn-desc">Satellite imagery with GPS coordinates</span>
+        </button>
+        <button id="btn-mode-image" class="banner-btn">
+          <span class="banner-icon">&#128444;</span>
+          <span class="banner-btn-label">Load Image</span>
+          <span class="banner-btn-desc">Design on a static image or photo</span>
+        </button>
+      </div>
+    </div>
+    <div id="image-gallery" class="hidden"></div>
+  </div>
+
+  <!-- Hidden file input for image upload -->
+  <input type="file" id="image-upload" accept="image/*" style="display:none">
+
+  <!-- Left Toolbar -->
+  <div id="toolbar">
+    <div class="toolbar-section">
+      <div class="toolbar-label">Place Cones</div>
+      <button class="tool-btn" data-tool="regular" title="Regular Cone (orange)">
+        <span class="cone-icon cone-regular"></span>
+        Regular
+      </button>
+      <button class="tool-btn" data-tool="pointer" title="Pointer Cone (red)">
+        <span class="cone-icon cone-pointer"></span>
+        Pointer
+      </button>
+      <button class="tool-btn" data-tool="start-gate" title="Start Gate (green pair)">
+        <span class="cone-icon cone-start"></span>
+        Start
+      </button>
+      <button class="tool-btn" data-tool="finish-gate" title="Finish Gate (checkered pair)">
+        <span class="cone-icon cone-finish"></span>
+        Finish
+      </button>
+    </div>
+    <div class="toolbar-section">
+      <div class="toolbar-label">Tools</div>
+      <button class="tool-btn" data-tool="select" title="Select & Measure">
+        <span class="tool-icon">&#9997;</span>
+        Select
+      </button>
+      <button class="tool-btn" data-tool="drivingline" title="Draw Driving Line">
+        <span class="tool-icon">&#10137;</span>
+        Line
+      </button>
+      <button class="tool-btn" id="btn-clear-line" title="Clear Driving Line">
+        <span class="tool-icon">&#10060;</span>
+        Clear Line
+      </button>
+    </div>
+    <div class="toolbar-section image-mode-only hidden">
+      <div class="toolbar-label">Scale</div>
+      <button class="tool-btn" data-tool="scale" title="Set image scale by marking two points">
+        <span class="tool-icon">&#128207;</span>
+        Set Scale
+      </button>
+      <div id="scale-status" class="toolbar-hint">Not calibrated</div>
+    </div>
+    <div class="toolbar-section">
+      <div class="toolbar-label">Grid</div>
+      <button class="tool-btn" id="btn-grid-toggle" title="Toggle 10ft Grid">
+        <span class="tool-icon">&#9638;</span>
+        Grid
+      </button>
+      <div id="grid-rotation-control" class="hidden">
+        <label class="toolbar-sublabel" for="grid-rotation">Rotation</label>
+        <input type="range" id="grid-rotation" min="0" max="360" value="0">
+        <div class="rotation-row">
+          <input type="number" id="grid-rotation-number" min="0" max="360" step="1" value="0">
+          <span class="toolbar-sublabel">&deg;</span>
+        </div>
+      </div>
+      <button class="tool-btn" id="btn-grid-lines" title="Toggle Light/Dark Grid Lines">
+        <span class="tool-icon">&#9681;</span>
+        Light
+      </button>
+    </div>
+    <div class="toolbar-section">
+      <div class="toolbar-label">Course</div>
+      <button class="tool-btn" id="btn-save" title="Save Course">
+        <span class="tool-icon">&#128190;</span>
+        Save
+      </button>
+      <button class="tool-btn" id="btn-print" title="Print to Image">
+        <span class="tool-icon">&#128438;</span>
+        Print
+      </button>
+      <button class="tool-btn" id="btn-export" title="Export JSON">
+        <span class="tool-icon">&#128228;</span>
+        Export
+      </button>
+      <button class="tool-btn" id="btn-import" title="Import JSON">
+        <span class="tool-icon">&#128229;</span>
+        Import
+      </button>
+      <input type="file" id="import-file" accept=".json" style="display:none">
+    </div>
+  </div>
+
+  <!-- Search Bar -->
+  <div id="search-bar">
+    <input type="text" id="search-input" placeholder="Search location or paste coords (lat, lng)" autocomplete="off">
+    <button id="search-btn">Go</button>
+    <div id="search-suggestions" class="hidden"></div>
+  </div>
+
+  <!-- Grid Canvas Overlay -->
+  <canvas id="grid-canvas" style="display:none"></canvas>
+
+  <!-- Map Container -->
+  <div id="map"></div>
+
+  <!-- Distance Label (floating) -->
+  <div id="distance-label" class="hidden"></div>
+
+  <!-- Right Sidebar -->
+  <div id="sidebar">
+    <button id="sidebar-toggle">&#9664;</button>
+    <div id="sidebar-content">
+      <h3>Course Info</h3>
+      <div id="course-info">
+        <div id="cone-count">Cones: 0</div>
+        <div id="line-length">Line: -- ft</div>
+      </div>
+      <h3>Saved Courses</h3>
+      <div id="saved-list"></div>
+    </div>
+  </div>
+
+  <!-- Scale Dialog (image mode) -->
+  <div id="scale-dialog" class="hidden">
+    <div class="scale-dialog-content">
+      <h3>Set Scale</h3>
+      <p class="scale-dialog-text">What is the real-world distance between the two points you selected?</p>
+      <div class="scale-input-row">
+        <input type="number" id="scale-distance-input" min="0.1" step="any" placeholder="Distance">
+        <span class="scale-unit">ft</span>
+      </div>
+      <div class="scale-dialog-buttons">
+        <button id="scale-confirm" class="print-btn-confirm">Set Scale</button>
+        <button id="scale-cancel" class="print-btn-cancel">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scale hint overlay (image mode) -->
+  <div id="scale-hint" class="hidden"></div>
+
+  <!-- Print Dialog -->
+  <div id="print-dialog" class="hidden">
+    <div class="print-dialog-content">
+      <h3>Print to Image</h3>
+      <label class="print-option">
+        <input type="checkbox" id="print-include-grid"> Include grid lines
+      </label>
+      <div class="print-dialog-buttons">
+        <button id="print-confirm" class="print-btn-confirm">Download Image</button>
+        <button id="print-cancel" class="print-btn-cancel">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://api.mapbox.com/mapbox-gl-js/v3.3.0/mapbox-gl.js"></script>
+  <script src="js/storage.js"></script>
+  <script src="js/geocache.js"></script>
+  <script src="js/imageMap.js"></script>
+  <script src="js/imageMode.js"></script>
+  <script src="js/map.js"></script>
+  <script src="js/cones.js"></script>
+  <script src="js/distance.js"></script>
+  <script src="js/drivingline.js"></script>
+  <script src="js/grid.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
