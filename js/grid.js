@@ -77,7 +77,8 @@ const Grid = {
     }
     const lat = this._map.getCenter().lat;
     const zoom = this._map.getZoom();
-    return 156543.03392 * Math.cos(lat * Math.PI / 180) / Math.pow(2, zoom);
+    // 78271.517 = equatorial m/px at zoom 0 for 512px tiles (Mapbox GL JS default)
+    return 78271.517 * Math.cos(lat * Math.PI / 180) / Math.pow(2, zoom);
   },
 
   /** Draw the grid */
