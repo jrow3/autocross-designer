@@ -135,6 +135,11 @@ const Cones = {
       const pos = marker.getLngLat();
       cone.lngLat = [pos.lng, pos.lat];
 
+      // Update any measurements anchored to this cone
+      if (typeof Measurements !== 'undefined') {
+        Measurements.updateConePosition(cone.id, cone.lngLat);
+      }
+
       // Drag-to-lock: if pointer cone dropped near a regular cone, lock onto it
       if (cone.type === 'pointer') {
         cone.lockedTargetId = null; // clear previous lock
@@ -185,6 +190,12 @@ const Cones = {
     if (idx === -1) return;
     this.cones[idx].marker.remove();
     this.cones.splice(idx, 1);
+
+    // Detach any measurements anchored to this cone
+    if (typeof Measurements !== 'undefined') {
+      Measurements.detachCone(id);
+    }
+
     this._updateAllPointerRotations();
     if (this._onUpdate) this._onUpdate();
   },

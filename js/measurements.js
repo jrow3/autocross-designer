@@ -1,48 +1,61 @@
 // measurements.js — Persistent distance measurements with two-click workflow
 
 const Measurements = {
-  measurements: [],     // { id, points: [[lng,lat],[lng,lat]], markers: [m1, m2], labelEl, sourceId, svgEl }
+  measurements: [],     // { id, points, coneIds, markers, labelEl, svgEl, sourceId }
   _nextId: 1,
   _map: null,
   _visible: true,
   _pendingPoint: null,  // first click lngLat waiting for second
-  _pendingMarker: null, // marker for first point
+  _pendingMarker: null,
+  _pendingConeId: null, // cone id if first click snapped to a cone
 
   init(map) {
     this._map = map;
-
-    // Update label positions on pan/zoom
     map.on('move', () => this.updateAllLabels());
   },
 
   /** Handle a click while measure tool is active. screenPoint for cone snapping. */
   handleClick(lngLat, screenPoint) {
-    // Snap to cone if within 25px
     let point = [lngLat.lng, lngLat.lat];
+    let coneId = null;
+
+    // Snap to cone if within 25px
     if (screenPoint) {
       const nearCone = App._findConeNear(screenPoint);
       if (nearCone) {
         point = nearCone.lngLat.slice();
+        coneId = nearCone.id;
       }
     }
 
+    // Also check if this click came directly from a cone (via _handleConeSelect)
+    if (!coneId) {
+      const exactCone = Cones.cones.find(c =>
+        c.lngLat[0] === point[0] && c.lngLat[1] === point[1]
+      );
+      if (exactCone) coneId = exactCone.id;
+    }
+
     if (!this._pendingPoint) {
-      // First click — show endpoint and wait for second
+      // First click
       this._pendingPoint = point;
+      this._pendingConeId = coneId;
       this._pendingMarker = this._createEndpointMarker(point);
     } else {
       // Second click — create the measurement
       const p1 = this._pendingPoint;
       const p2 = point;
+      const coneId1 = this._pendingConeId;
+      const coneId2 = coneId;
 
-      // Remove pending marker (will be replaced by measurement's own markers)
       if (this._pendingMarker) {
         this._pendingMarker.remove();
         this._pendingMarker = null;
       }
       this._pendingPoint = null;
+      this._pendingConeId = null;
 
-      this._createMeasurement(p1, p2);
+      this._createMeasurement(p1, p2, coneId1, coneId2);
     }
   },
 
@@ -53,12 +66,71 @@ const Measurements = {
       this._pendingMarker = null;
     }
     this._pendingPoint = null;
+    this._pendingConeId = null;
+  },
+
+  /** Called when a cone moves — update any measurements anchored to it */
+  updateConePosition(coneId, newLngLat) {
+    for (const m of this.measurements) {
+      let changed = false;
+
+      if (m.coneIds[0] === coneId) {
+        m.points[0] = newLngLat.slice();
+        m.markers[0].setLngLat(newLngLat);
+        changed = true;
+      }
+      if (m.coneIds[1] === coneId) {
+        m.points[1] = newLngLat.slice();
+        m.markers[1].setLngLat(newLngLat);
+        changed = true;
+      }
+
+      if (changed) {
+        // Update label text
+        m.labelEl.textContent = this._computeDistanceLabel(m.points[0], m.points[1]);
+
+        // Update line geometry
+        if (App.mode === 'image') {
+          const line = m.svgEl ? m.svgEl.querySelector('line') : null;
+          if (line) {
+            line.setAttribute('x1', m.points[0][0]);
+            line.setAttribute('y1', m.points[0][1]);
+            line.setAttribute('x2', m.points[1][0]);
+            line.setAttribute('y2', m.points[1][1]);
+          }
+          // Update label position
+          const midX = (m.points[0][0] + m.points[1][0]) / 2;
+          const midY = (m.points[0][1] + m.points[1][1]) / 2;
+          m.labelEl.style.left = midX + 'px';
+          m.labelEl.style.top = midY + 'px';
+        } else {
+          // Map mode: reposition SVG line and label
+          const line = m.svgEl ? m.svgEl.querySelector('line') : null;
+          if (line) {
+            const sp1 = this._map.project(m.points[0]);
+            const sp2 = this._map.project(m.points[1]);
+            line.setAttribute('x1', sp1.x);
+            line.setAttribute('y1', sp1.y);
+            line.setAttribute('x2', sp2.x);
+            line.setAttribute('y2', sp2.y);
+          }
+          this._positionLabel(m.labelEl, m.points[0], m.points[1]);
+        }
+      }
+    }
+  },
+
+  /** Called when a cone is deleted — detach any measurements from it (keep measurement, just unlink) */
+  detachCone(coneId) {
+    for (const m of this.measurements) {
+      if (m.coneIds[0] === coneId) m.coneIds[0] = null;
+      if (m.coneIds[1] === coneId) m.coneIds[1] = null;
+    }
   },
 
   /** Create a full measurement between two points */
-  _createMeasurement(p1, p2) {
+  _createMeasurement(p1, p2, coneId1, coneId2) {
     const id = this._nextId++;
-    const sourceId = 'measure-line-' + id;
 
     // Create endpoint markers
     const m1 = this._createEndpointMarker(p1, id);
@@ -69,16 +141,13 @@ const Measurements = {
     labelEl.className = 'measurement-label';
     labelEl.textContent = this._computeDistanceLabel(p1, p2);
 
-    // Right-click on label to delete
     labelEl.addEventListener('contextmenu', (e) => {
       e.preventDefault();
       e.stopPropagation();
       this.removeMeasurement(id);
     });
 
-    // Draw line
     if (App.mode === 'image') {
-      // SVG line inside the image wrapper
       const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
       svg.classList.add('measurement-line-svg');
       svg.setAttribute('width', ImageMap._imageWidth);
@@ -102,7 +171,6 @@ const Measurements = {
 
       ImageMap._wrapper.insertBefore(svg, ImageMap._markerContainer);
 
-      // Label inside marker container at midpoint
       const midX = (p1[0] + p2[0]) / 2;
       const midY = (p1[1] + p2[1]) / 2;
       labelEl.style.position = 'absolute';
@@ -113,25 +181,26 @@ const Measurements = {
       labelEl.style.zIndex = '10';
       ImageMap._markerContainer.appendChild(labelEl);
 
-      const measurement = { id, points: [p1, p2], markers: [m1, m2], labelEl, svgEl: svg, sourceId: null };
-      this.measurements.push(measurement);
+      this.measurements.push({
+        id, points: [p1, p2], coneIds: [coneId1 || null, coneId2 || null],
+        markers: [m1, m2], labelEl, svgEl: svg, sourceId: null,
+      });
     } else {
-      // Map mode: draw line via a simple SVG overlay on screen, plus label
-      // (Using DOM elements instead of GeoJSON layers for reliability)
       const svgOverlay = this._createMapLineSVG(p1, p2);
       document.body.appendChild(svgOverlay);
 
-      // Position label on screen at midpoint
       labelEl.style.pointerEvents = 'auto';
       document.body.appendChild(labelEl);
       this._positionLabel(labelEl, p1, p2);
 
-      const measurement = { id, points: [p1, p2], markers: [m1, m2], labelEl, svgEl: svgOverlay, sourceId: null };
-      this.measurements.push(measurement);
+      this.measurements.push({
+        id, points: [p1, p2], coneIds: [coneId1 || null, coneId2 || null],
+        markers: [m1, m2], labelEl, svgEl: svgOverlay, sourceId: null,
+      });
     }
   },
 
-  /** Create an SVG line overlay for map mode that we reposition on move */
+  /** Create an SVG line overlay for map mode */
   _createMapLineSVG(p1, p2) {
     const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
     svg.style.position = 'absolute';
@@ -149,7 +218,6 @@ const Measurements = {
     line.setAttribute('stroke-dasharray', '6,4');
     svg.appendChild(line);
 
-    // Position the line
     const sp1 = this._map.project(p1);
     const sp2 = this._map.project(p2);
     line.setAttribute('x1', sp1.x);
@@ -197,7 +265,7 @@ const Measurements = {
     return feet.toFixed(1) + ' ft';
   },
 
-  /** Position a label element at the midpoint between two points (map mode) */
+  /** Position a label at the midpoint (map mode) */
   _positionLabel(labelEl, p1, p2) {
     const sp1 = this._map.project(p1);
     const sp2 = this._map.project(p2);
@@ -222,7 +290,6 @@ const Measurements = {
       return;
     }
 
-    // Map mode: reposition SVG lines and labels
     for (const m of this.measurements) {
       if (m.labelEl && m.labelEl.parentNode) {
         this._positionLabel(m.labelEl, m.points[0], m.points[1]);
@@ -247,15 +314,10 @@ const Measurements = {
     if (idx === -1) return;
     const m = this.measurements[idx];
 
-    // Remove markers
     m.markers.forEach(mk => mk.remove());
-
-    // Remove label
     if (m.labelEl && m.labelEl.parentNode) {
       m.labelEl.parentNode.removeChild(m.labelEl);
     }
-
-    // Remove line SVG
     if (m.svgEl && m.svgEl.parentNode) {
       m.svgEl.parentNode.removeChild(m.svgEl);
     }
@@ -263,7 +325,7 @@ const Measurements = {
     this.measurements.splice(idx, 1);
   },
 
-  /** Toggle visibility of all measurements */
+  /** Toggle visibility */
   toggleVisibility() {
     this._visible = !this._visible;
     for (const m of this.measurements) {
@@ -278,7 +340,7 @@ const Measurements = {
     return this._visible;
   },
 
-  /** Clear all measurements */
+  /** Clear all */
   clearAll() {
     while (this.measurements.length > 0) {
       this.removeMeasurement(this.measurements[0].id);
@@ -290,6 +352,8 @@ const Measurements = {
     return this.measurements.map(m => ({
       p1: m.points[0],
       p2: m.points[1],
+      coneId1: m.coneIds[0],
+      coneId2: m.coneIds[1],
     }));
   },
 
@@ -297,7 +361,7 @@ const Measurements = {
   loadData(data) {
     this.clearAll();
     data.forEach(d => {
-      this._createMeasurement(d.p1, d.p2);
+      this._createMeasurement(d.p1, d.p2, d.coneId1 || null, d.coneId2 || null);
     });
   },
 };
