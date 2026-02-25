@@ -24,13 +24,38 @@ const ImageMode = {
    *   { mode: 'map' } — user chose live map
    *   { mode: 'image', imageSrc: '<dataURL or path>', fileName: '<name>' } — user chose an image
    */
-  showBanner() {
+  /**
+   * Show the mode selection banner.
+   * @param {string} [autoMode] - If 'map', skip the banner and resolve immediately with map mode.
+   *                               If 'image', skip the two-button choice and go straight to the gallery.
+   * Returns a Promise that resolves with:
+   *   { mode: 'map' } — user chose live map
+   *   { mode: 'image', imageSrc: '<dataURL or path>', fileName: '<name>' } — user chose an image
+   */
+  showBanner(autoMode) {
     return new Promise((resolve) => {
+      // Auto-select map mode (skip banner entirely)
+      if (autoMode === 'map') {
+        resolve({ mode: 'map' });
+        return;
+      }
+
       const banner = document.getElementById('mode-banner');
       const gallery = document.getElementById('image-gallery');
       const uploadInput = document.getElementById('image-upload');
 
       banner.classList.remove('hidden');
+
+      // Auto-select image mode (skip choice screen, go straight to gallery)
+      if (autoMode === 'image') {
+        document.getElementById('mode-choices').classList.add('hidden');
+        gallery.classList.remove('hidden');
+        this._loadManifest().then(images => {
+          this._bundledImages = images;
+          this._buildGallery(gallery, uploadInput, resolve, banner);
+        });
+        return;
+      }
 
       // "Draw on Live Map" button
       document.getElementById('btn-mode-map').addEventListener('click', () => {

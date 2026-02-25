@@ -1,7 +1,7 @@
 // app.js — App init, state management, event wiring
 
 const App = {
-  activeTool: 'regular',  // current tool: regular, pointer, start-gate, finish-gate, select, drivingline, scale
+  activeTool: 'regular',  // current tool: regular, pointer, start-gate, finish-gate, select, drivingline, scale, measure, note, trailer, staging-grid
   selectedCone: null,
   map: null,
   mode: 'map',           // 'map' or 'image'
@@ -11,8 +11,20 @@ const App = {
   _scaleLine: null,       // temp SVG line overlay
 
   async init() {
-    // Show mode selection banner
-    const choice = await ImageMode.showBanner();
+    // Check for pending cross-mode import
+    const pendingRaw = sessionStorage.getItem('autocross-pending-import');
+    let autoMode = undefined;
+    if (pendingRaw) {
+      try {
+        const pending = JSON.parse(pendingRaw);
+        autoMode = pending.imageMode ? 'image' : 'map';
+      } catch {
+        sessionStorage.removeItem('autocross-pending-import');
+      }
+    }
+
+    // Show mode selection banner (may auto-select based on pending import)
+    const choice = await ImageMode.showBanner(autoMode);
     this.mode = choice.mode;
 
     if (this.mode === 'map') {
@@ -78,6 +90,12 @@ const App = {
       onUpdate: () => this._updateInfo(),
     });
 
+    Measurements.init(this.map);
+
+    Notes.init(this.map, {
+      onUpdate: () => this._updateInfo(),
+    });
+
     Grid.init(this.map);
 
     // Wire up map click
@@ -106,6 +124,16 @@ const App = {
 
     // Set default tool active
     this._setActiveTool('regular');
+
+    // Apply pending cross-mode import if present
+    const pendingRaw = sessionStorage.getItem('autocross-pending-import');
+    if (pendingRaw) {
+      sessionStorage.removeItem('autocross-pending-import');
+      try {
+        const data = JSON.parse(pendingRaw);
+        this._loadCourseData(data);
+      } catch {}
+    }
   },
 
   /** Handle click on the map */
@@ -117,6 +145,8 @@ const App = {
       case 'pointer':
       case 'start-gate':
       case 'finish-gate':
+      case 'trailer':
+      case 'staging-grid':
         Cones.place(this.activeTool, lngLat);
         break;
 
@@ -127,6 +157,14 @@ const App = {
 
       case 'drivingline':
         DrivingLine.addWaypoint(lngLat);
+        break;
+
+      case 'measure':
+        Measurements.handleClick(lngLat, e.point);
+        break;
+
+      case 'note':
+        Notes.addNote(lngLat);
         break;
 
       case 'scale':
@@ -200,6 +238,11 @@ const App = {
     document.getElementById('btn-clear-line').addEventListener('click', () => {
       DrivingLine.clear();
     });
+
+    document.getElementById('btn-toggle-measures').addEventListener('click', () => {
+      const visible = Measurements.toggleVisibility();
+      document.getElementById('btn-toggle-measures').classList.toggle('active', visible);
+    });
   },
 
   /** Set the active tool and update button styles */
@@ -208,6 +251,11 @@ const App = {
     if (this.activeTool === 'scale' && tool !== 'scale') {
       this._clearScaleVisuals();
       document.getElementById('scale-hint').classList.add('hidden');
+    }
+
+    // Cancel pending measurement if switching away from measure tool
+    if (this.activeTool === 'measure' && tool !== 'measure') {
+      Measurements.cancelPending();
     }
 
     this.activeTool = tool;
@@ -378,7 +426,102 @@ const App = {
         ctx.strokeStyle = '#666';
         ctx.lineWidth = 1 * scale;
         ctx.stroke();
+      } else if (cone.type === 'trailer') {
+        const tw = (cone.width || 40) * scale;
+        const th = (cone.height || 20) * scale;
+        ctx.beginPath();
+        ctx.rect(-tw / 2, -th / 2, tw, th);
+        ctx.fillStyle = 'rgba(120, 120, 140, 0.8)';
+        ctx.fill();
+        ctx.strokeStyle = '#666';
+        ctx.lineWidth = 2 * scale;
+        ctx.stroke();
+      } else if (cone.type === 'staging-grid') {
+        const gw = (cone.width || 80) * scale;
+        const gh = (cone.height || 50) * scale;
+        ctx.setLineDash([4 * scale, 3 * scale]);
+        ctx.beginPath();
+        ctx.rect(-gw / 2, -gh / 2, gw, gh);
+        ctx.strokeStyle = 'rgba(255, 200, 50, 0.8)';
+        ctx.lineWidth = 2 * scale;
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.fillStyle = 'rgba(255, 200, 50, 0.9)';
+        ctx.font = `bold ${11 * scale}px sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('GRID', 0, 0);
       }
+      ctx.restore();
+    }
+
+    // Draw measurement lines
+    for (const m of Measurements.measurements) {
+      const p1pos = this.mode === 'image'
+        ? { x: m.points[0][0], y: m.points[0][1] }
+        : this.map.project(m.points[0]);
+      const p2pos = this.mode === 'image'
+        ? { x: m.points[1][0], y: m.points[1][1] }
+        : this.map.project(m.points[1]);
+      const x1 = p1pos.x * dpr, y1 = p1pos.y * dpr;
+      const x2 = p2pos.x * dpr, y2 = p2pos.y * dpr;
+
+      ctx.save();
+      ctx.setLineDash([4 * dpr, 3 * dpr]);
+      ctx.beginPath();
+      ctx.moveTo(x1, y1);
+      ctx.lineTo(x2, y2);
+      ctx.strokeStyle = '#f472b6';
+      ctx.lineWidth = 2 * dpr;
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      // Endpoints
+      [{ x: x1, y: y1 }, { x: x2, y: y2 }].forEach(p => {
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, 4 * dpr, 0, Math.PI * 2);
+        ctx.fillStyle = '#f472b6';
+        ctx.fill();
+      });
+
+      // Label at midpoint
+      const mx = (x1 + x2) / 2;
+      const my = (y1 + y2) / 2;
+      const label = Measurements._computeDistanceLabel(m.points[0], m.points[1]);
+      ctx.font = `bold ${12 * dpr}px sans-serif`;
+      const tw = ctx.measureText(label).width;
+      ctx.fillStyle = 'rgba(190, 24, 93, 0.9)';
+      ctx.beginPath();
+      ctx.roundRect(mx - tw / 2 - 4 * dpr, my - 16 * dpr, tw + 8 * dpr, 18 * dpr, 3 * dpr);
+      ctx.fill();
+      ctx.fillStyle = '#fff';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(label, mx, my - 7 * dpr);
+      ctx.restore();
+    }
+
+    // Draw note markers
+    for (const n of Notes.notes) {
+      const pos = this.mode === 'image'
+        ? { x: n.lngLat[0], y: n.lngLat[1] }
+        : this.map.project(n.lngLat);
+      const nx = pos.x * dpr;
+      const ny = pos.y * dpr;
+
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(nx, ny, 12 * dpr, 0, Math.PI * 2);
+      ctx.fillStyle = '#8b5cf6';
+      ctx.fill();
+      ctx.strokeStyle = '#6d28d9';
+      ctx.lineWidth = 2 * dpr;
+      ctx.stroke();
+      ctx.fillStyle = '#fff';
+      ctx.font = `bold ${11 * dpr}px sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(String(n.number), nx, ny);
       ctx.restore();
     }
 
@@ -411,6 +554,8 @@ const App = {
       const data = Storage.serialize(
         Cones.getData(),
         DrivingLine.getData(),
+        Measurements.getData(),
+        Notes.getData(),
         center.toArray ? center.toArray() : [center.lng, center.lat],
         this.map.getZoom(),
         this.mode === 'image',
@@ -426,6 +571,8 @@ const App = {
       const data = Storage.serialize(
         Cones.getData(),
         DrivingLine.getData(),
+        Measurements.getData(),
+        Notes.getData(),
         center.toArray ? center.toArray() : [center.lng, center.lat],
         this.map.getZoom(),
         this.mode === 'image',
@@ -445,6 +592,14 @@ const App = {
       if (!file) return;
 
       Storage.importJSON(file).then(data => {
+        // Detect cross-mode mismatch: reload into the correct mode
+        const importIsImage = !!data.imageMode;
+        const currentIsImage = this.mode === 'image';
+        if (importIsImage !== currentIsImage) {
+          sessionStorage.setItem('autocross-pending-import', JSON.stringify(data));
+          location.reload();
+          return;
+        }
         this._loadCourseData(data);
         importFile.value = ''; // reset
       }).catch(err => {
@@ -455,15 +610,10 @@ const App = {
 
   /** Load course data (from save or import) */
   _loadCourseData(data) {
-    // Warn about mode mismatch
-    if (data.imageMode && this.mode === 'map') {
-      alert('Warning: This course was designed in image mode. Coordinates may not display correctly on the map.');
-    } else if (!data.imageMode && this.mode === 'image') {
-      alert('Warning: This course was designed in map mode. GPS coordinates will be used as pixel positions.');
-    }
-
     if (data.cones) Cones.loadData(data.cones);
     if (data.drivingLine) DrivingLine.loadData(data.drivingLine);
+    if (data.measurements) Measurements.loadData(data.measurements);
+    if (data.notes) Notes.loadData(data.notes);
     if (data.mapCenter && data.mapZoom && this.mode === 'map') {
       MapModule.flyTo(data.mapCenter, data.mapZoom);
     }
@@ -514,6 +664,14 @@ const App = {
   _updateInfo() {
     document.getElementById('cone-count').textContent = `Cones: ${Cones.count()}`;
 
+    const elCount = Cones.elementCount();
+    const elDiv = document.getElementById('element-count');
+    if (elCount > 0) {
+      elDiv.textContent = `Elements: ${elCount}`;
+    } else {
+      elDiv.textContent = '';
+    }
+
     const lineLen = Distance.totalLength(DrivingLine.waypoints);
     if (lineLen < 0) {
       document.getElementById('line-length').textContent = 'Line: N/A';
@@ -522,6 +680,8 @@ const App = {
         ? `Line: ${lineLen.toFixed(0)} ft`
         : 'Line: -- ft';
     }
+
+    Notes.renderSidebar();
   },
   // ===== Scale Calibration (Image Mode) =====
 

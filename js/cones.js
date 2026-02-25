@@ -78,28 +78,36 @@ const Cones = {
     }
   },
 
-  /** Place a cone of the given type at lngLat */
-  place(type, lngLat) {
+  /** Place a cone of the given type at lngLat. If exactLngLat is provided, skip snap logic and use those exact coordinates. */
+  place(type, lngLat, exactLngLat) {
     const id = this._nextId++;
 
-    let placeLng = lngLat.lng;
-    let placeLat = lngLat.lat;
+    let placeLng, placeLat;
 
-    // Snap pointer cones near the nearest regular cone
-    if (type === 'pointer') {
-      const nearest = this._findNearestRegularCone([lngLat.lng, lngLat.lat]);
-      if (nearest) {
-        const dx = lngLat.lng - nearest.lngLat[0];
-        const dy = lngLat.lat - nearest.lngLat[1];
-        const dist = Math.sqrt(dx * dx + dy * dy);
-        if (dist > 0) {
-          // Offset ~5ft from nearest cone in click direction
-          let snapOffset = POINTER_SNAP_OFFSET_DEG;
-          if (App.mode === 'image') {
-            snapOffset = ImageMap.hasScale() ? (5 / ImageMap.getScale()) : 15;
+    if (exactLngLat) {
+      // Use exact coordinates (e.g. restoring from saved data)
+      placeLng = exactLngLat[0];
+      placeLat = exactLngLat[1];
+    } else {
+      placeLng = lngLat.lng;
+      placeLat = lngLat.lat;
+
+      // Snap pointer cones near the nearest regular cone
+      if (type === 'pointer') {
+        const nearest = this._findNearestRegularCone([lngLat.lng, lngLat.lat]);
+        if (nearest) {
+          const dx = lngLat.lng - nearest.lngLat[0];
+          const dy = lngLat.lat - nearest.lngLat[1];
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          if (dist > 0) {
+            // Offset ~5ft from nearest cone in click direction
+            let snapOffset = POINTER_SNAP_OFFSET_DEG;
+            if (App.mode === 'image') {
+              snapOffset = ImageMap.hasScale() ? (5 / ImageMap.getScale()) : 15;
+            }
+            placeLng = nearest.lngLat[0] + (dx / dist) * snapOffset;
+            placeLat = nearest.lngLat[1] + (dy / dist) * snapOffset;
           }
-          placeLng = nearest.lngLat[0] + (dx / dist) * snapOffset;
-          placeLat = nearest.lngLat[1] + (dy / dist) * snapOffset;
         }
       }
     }
@@ -110,8 +118,16 @@ const Cones = {
       .setLngLat([placeLng, placeLat])
       .addTo(this._map);
 
-    const cone = { id, type, lngLat: [placeLng, placeLat], marker, lockedTargetId: null };
+    const cone = { id, type, lngLat: [placeLng, placeLat], marker, lockedTargetId: null, width: null, height: null };
     this.cones.push(cone);
+
+    // Add resize handle for resizable elements
+    if (type === 'trailer' || type === 'staging-grid') {
+      const defaults = type === 'trailer' ? { w: 40, h: 20 } : { w: 80, h: 50 };
+      cone.width = defaults.w;
+      cone.height = defaults.h;
+      this._addResizeHandle(cone, el);
+    }
 
     // Update lngLat on drag
     marker.on('dragend', () => {
@@ -190,10 +206,12 @@ const Cones = {
 
   /** Get cones data for serialization */
   getData() {
-    return this.cones.map(c => ({
-      id: c.id, type: c.type, lngLat: c.lngLat,
-      lockedTargetId: c.lockedTargetId || null,
-    }));
+    return this.cones.map(c => {
+      const d = { id: c.id, type: c.type, lngLat: c.lngLat, lockedTargetId: c.lockedTargetId || null };
+      if (c.width != null) d.width = c.width;
+      if (c.height != null) d.height = c.height;
+      return d;
+    });
   },
 
   /** Load cones from saved data */
@@ -202,8 +220,14 @@ const Cones = {
     // First pass: place all cones
     const idMap = {};
     data.forEach(d => {
-      const cone = this.place(d.type, { lng: d.lngLat[0], lat: d.lngLat[1] });
+      const cone = this.place(d.type, { lng: d.lngLat[0], lat: d.lngLat[1] }, d.lngLat);
       idMap[d.id] = cone;
+      // Restore size for resizable elements
+      if (d.width != null && d.height != null) {
+        cone.width = d.width;
+        cone.height = d.height;
+        this._applySize(cone);
+      }
     });
     // Second pass: restore locked targets (map old IDs to new IDs)
     data.forEach(d => {
@@ -214,9 +238,75 @@ const Cones = {
     this._updateAllPointerRotations();
   },
 
-  /** Get cone count */
+  /** Get cone count (only actual cone types) */
   count() {
-    return this.cones.length;
+    const coneTypes = ['regular', 'pointer', 'start-gate', 'finish-gate'];
+    return this.cones.filter(c => coneTypes.includes(c.type)).length;
+  },
+
+  /** Get element count (non-cone placeable items) */
+  elementCount() {
+    const coneTypes = ['regular', 'pointer', 'start-gate', 'finish-gate'];
+    return this.cones.filter(c => !coneTypes.includes(c.type)).length;
+  },
+
+  /** Add a resize handle to a resizable element */
+  _addResizeHandle(cone, el) {
+    const handle = document.createElement('div');
+    handle.className = 'resize-handle';
+    el.appendChild(handle);
+    el.classList.add('resizable');
+
+    let resizing = false;
+    let startX, startY, startW, startH;
+
+    const inner = el.querySelector('.marker-trailer, .marker-staging-grid');
+
+    const onMouseDown = (e) => {
+      if (e.button !== 0) return;
+      e.stopPropagation();
+      e.preventDefault();
+      resizing = true;
+      startX = e.clientX;
+      startY = e.clientY;
+      startW = cone.width;
+      startH = cone.height;
+      document.addEventListener('mousemove', onMouseMove);
+      document.addEventListener('mouseup', onMouseUp);
+    };
+
+    const onMouseMove = (e) => {
+      if (!resizing) return;
+      // In image mode, account for the wrapper scale
+      const mapScale = (App.mode === 'image') ? (ImageMap._scale || 1) : 1;
+      const dx = (e.clientX - startX) / mapScale;
+      const dy = (e.clientY - startY) / mapScale;
+      cone.width = Math.max(20, startW + dx);
+      cone.height = Math.max(12, startH + dy);
+      if (inner) {
+        inner.style.width = cone.width + 'px';
+        inner.style.height = cone.height + 'px';
+      }
+    };
+
+    const onMouseUp = () => {
+      resizing = false;
+      document.removeEventListener('mousemove', onMouseMove);
+      document.removeEventListener('mouseup', onMouseUp);
+      if (this._onUpdate) this._onUpdate();
+    };
+
+    handle.addEventListener('mousedown', onMouseDown);
+  },
+
+  /** Apply stored size to a resizable element */
+  _applySize(cone) {
+    if (!cone.width || !cone.height) return;
+    const inner = cone.marker.getElement().querySelector('.marker-trailer, .marker-staging-grid');
+    if (inner) {
+      inner.style.width = cone.width + 'px';
+      inner.style.height = cone.height + 'px';
+    }
   },
 
   /** Create the HTML element for a cone marker */
@@ -237,6 +327,12 @@ const Cones = {
         break;
       case 'finish-gate':
         el.innerHTML = '<div class="marker-finish"></div>';
+        break;
+      case 'trailer':
+        el.innerHTML = '<div class="marker-trailer"></div>';
+        break;
+      case 'staging-grid':
+        el.innerHTML = '<div class="marker-staging-grid">GRID</div>';
         break;
       default:
         el.innerHTML = '<div class="marker-regular"></div>';
