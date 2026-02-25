@@ -175,6 +175,12 @@ const App = {
 
   /** Handle cone selection */
   _handleConeSelect(cone) {
+    if (this.activeTool === 'measure') {
+      // Use the cone's exact position for measurement
+      Measurements.handleClick({ lng: cone.lngLat[0], lat: cone.lngLat[1] }, null);
+      return;
+    }
+
     if (this.activeTool === 'select') {
       // Toggle selection
       if (this.selectedCone && this.selectedCone.id === cone.id) {
@@ -427,6 +433,7 @@ const App = {
         ctx.lineWidth = 1 * scale;
         ctx.stroke();
       } else if (cone.type === 'trailer') {
+        if (cone.rotation) ctx.rotate(cone.rotation * Math.PI / 180);
         const tw = (cone.width || 40) * scale;
         const th = (cone.height || 20) * scale;
         ctx.beginPath();
@@ -437,6 +444,7 @@ const App = {
         ctx.lineWidth = 2 * scale;
         ctx.stroke();
       } else if (cone.type === 'staging-grid') {
+        if (cone.rotation) ctx.rotate(cone.rotation * Math.PI / 180);
         const gw = (cone.width || 80) * scale;
         const gh = (cone.height || 50) * scale;
         ctx.setLineDash([4 * scale, 3 * scale]);

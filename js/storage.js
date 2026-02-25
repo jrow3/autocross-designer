@@ -43,6 +43,7 @@ const Storage = {
         const d = { id: c.id, type: c.type, lngLat: c.lngLat, lockedTargetId: c.lockedTargetId || null };
         if (c.width != null) d.width = c.width;
         if (c.height != null) d.height = c.height;
+        if (c.rotation) d.rotation = c.rotation;
         return d;
       }),
       drivingLine: drivingLine.map(wp => ({ lngLat: wp.lngLat })),

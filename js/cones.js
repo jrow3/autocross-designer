@@ -118,15 +118,16 @@ const Cones = {
       .setLngLat([placeLng, placeLat])
       .addTo(this._map);
 
-    const cone = { id, type, lngLat: [placeLng, placeLat], marker, lockedTargetId: null, width: null, height: null };
+    const cone = { id, type, lngLat: [placeLng, placeLat], marker, lockedTargetId: null, width: null, height: null, rotation: 0 };
     this.cones.push(cone);
 
-    // Add resize handle for resizable elements
+    // Add resize and rotate handles for resizable elements
     if (type === 'trailer' || type === 'staging-grid') {
       const defaults = type === 'trailer' ? { w: 40, h: 20 } : { w: 80, h: 50 };
       cone.width = defaults.w;
       cone.height = defaults.h;
       this._addResizeHandle(cone, el);
+      this._addRotateHandle(cone, el);
     }
 
     // Update lngLat on drag
@@ -210,6 +211,7 @@ const Cones = {
       const d = { id: c.id, type: c.type, lngLat: c.lngLat, lockedTargetId: c.lockedTargetId || null };
       if (c.width != null) d.width = c.width;
       if (c.height != null) d.height = c.height;
+      if (c.rotation) d.rotation = c.rotation;
       return d;
     });
   },
@@ -222,10 +224,15 @@ const Cones = {
     data.forEach(d => {
       const cone = this.place(d.type, { lng: d.lngLat[0], lat: d.lngLat[1] }, d.lngLat);
       idMap[d.id] = cone;
-      // Restore size for resizable elements
+      // Restore size and rotation for resizable elements
       if (d.width != null && d.height != null) {
         cone.width = d.width;
         cone.height = d.height;
+      }
+      if (d.rotation) {
+        cone.rotation = d.rotation;
+      }
+      if (cone.width || cone.rotation) {
         this._applySize(cone);
       }
     });
@@ -299,13 +306,67 @@ const Cones = {
     handle.addEventListener('mousedown', onMouseDown);
   },
 
-  /** Apply stored size to a resizable element */
+  /** Add a rotation handle to a resizable element */
+  _addRotateHandle(cone, el) {
+    const handle = document.createElement('div');
+    handle.className = 'rotate-handle';
+    handle.title = 'Drag to rotate';
+    el.appendChild(handle);
+
+    const inner = el.querySelector('.marker-trailer, .marker-staging-grid');
+    let rotating = false;
+    let centerX, centerY;
+
+    const onMouseDown = (e) => {
+      if (e.button !== 0) return;
+      e.stopPropagation();
+      e.preventDefault();
+      rotating = true;
+
+      // Get the center of the element on screen
+      const rect = el.getBoundingClientRect();
+      centerX = rect.left + rect.width / 2;
+      centerY = rect.top + rect.height / 2;
+
+      document.addEventListener('mousemove', onMouseMove);
+      document.addEventListener('mouseup', onMouseUp);
+    };
+
+    const onMouseMove = (e) => {
+      if (!rotating) return;
+      const dx = e.clientX - centerX;
+      const dy = e.clientY - centerY;
+      let angle = Math.atan2(dy, dx) * (180 / Math.PI) + 90;
+      // Snap to 15-degree increments when holding shift
+      if (e.shiftKey) {
+        angle = Math.round(angle / 15) * 15;
+      }
+      cone.rotation = angle;
+      if (inner) {
+        inner.style.transform = `rotate(${angle}deg)`;
+      }
+    };
+
+    const onMouseUp = () => {
+      rotating = false;
+      document.removeEventListener('mousemove', onMouseMove);
+      document.removeEventListener('mouseup', onMouseUp);
+      if (this._onUpdate) this._onUpdate();
+    };
+
+    handle.addEventListener('mousedown', onMouseDown);
+  },
+
+  /** Apply stored size and rotation to a resizable element */
   _applySize(cone) {
-    if (!cone.width || !cone.height) return;
     const inner = cone.marker.getElement().querySelector('.marker-trailer, .marker-staging-grid');
-    if (inner) {
+    if (!inner) return;
+    if (cone.width && cone.height) {
       inner.style.width = cone.width + 'px';
       inner.style.height = cone.height + 'px';
+    }
+    if (cone.rotation) {
+      inner.style.transform = `rotate(${cone.rotation}deg)`;
     }
   },
 

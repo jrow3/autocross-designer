@@ -905,6 +905,31 @@ body {
   opacity: 1;
 }
 
+.rotate-handle {
+  position: absolute;
+  top: -18px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 12px;
+  height: 12px;
+  background: rgba(96, 165, 250, 0.9);
+  border: 1px solid #3b82f6;
+  border-radius: 50%;
+  cursor: grab;
+  z-index: 5;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.rotate-handle:active {
+  cursor: grabbing;
+}
+
+.cone-marker.resizable:hover .rotate-handle,
+.cone-marker.resizable.selected .rotate-handle {
+  opacity: 1;
+}
+
 .marker-trailer {
   width: 40px;
   height: 20px;
