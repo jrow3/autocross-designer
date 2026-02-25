@@ -674,14 +674,6 @@ const App = {
   _updateInfo() {
     document.getElementById('cone-count').textContent = `Cones: ${Cones.count()}`;
 
-    const elCount = Cones.elementCount();
-    const elDiv = document.getElementById('element-count');
-    if (elCount > 0) {
-      elDiv.textContent = `Elements: ${elCount}`;
-    } else {
-      elDiv.textContent = '';
-    }
-
     const lineLen = Distance.totalLength(DrivingLine.waypoints);
     if (lineLen < 0) {
       document.getElementById('line-length').textContent = 'Line: N/A';
