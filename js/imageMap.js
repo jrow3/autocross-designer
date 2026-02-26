@@ -285,7 +285,7 @@ const ImageMap = {
     this._container.addEventListener('mousedown', (e) => {
       // Only pan if left button and not on a marker
       if (e.button !== 0) return;
-      if (e.target.closest('.cone-marker, .waypoint-marker, .note-marker, .measurement-endpoint, .measurement-label')) return;
+      if (e.target.closest('.cone-marker, .waypoint-marker, .note-marker, .arrow-marker, .obstacle-marker, .worker-marker, .measurement-endpoint, .measurement-label')) return;
       panning = true;
       totalDragDist = 0;
       startX = e.clientX;
@@ -319,14 +319,14 @@ const ImageMap = {
     let touchStartX, touchStartY;
     this._container.addEventListener('touchstart', (e) => {
       if (e.touches.length !== 1) return;
-      if (e.target.closest('.cone-marker, .waypoint-marker, .note-marker, .measurement-endpoint, .measurement-label')) return;
+      if (e.target.closest('.cone-marker, .waypoint-marker, .note-marker, .arrow-marker, .obstacle-marker, .worker-marker, .measurement-endpoint, .measurement-label')) return;
       touchStartX = e.touches[0].clientX;
       touchStartY = e.touches[0].clientY;
     }, { passive: true });
 
     this._container.addEventListener('touchmove', (e) => {
       if (e.touches.length !== 1) return;
-      if (e.target.closest('.cone-marker, .waypoint-marker, .note-marker, .measurement-endpoint, .measurement-label')) return;
+      if (e.target.closest('.cone-marker, .waypoint-marker, .note-marker, .arrow-marker, .obstacle-marker, .worker-marker, .measurement-endpoint, .measurement-label')) return;
       const dx = e.touches[0].clientX - touchStartX;
       const dy = e.touches[0].clientY - touchStartY;
       touchStartX = e.touches[0].clientX;
@@ -366,7 +366,7 @@ const ImageMap = {
         this._suppressNextClick = false;
         return;
       }
-      if (e.target.closest('.cone-marker, .waypoint-marker, .note-marker, .measurement-endpoint, .measurement-label')) return;
+      if (e.target.closest('.cone-marker, .waypoint-marker, .note-marker, .arrow-marker, .obstacle-marker, .worker-marker, .measurement-endpoint, .measurement-label')) return;
       const coords = this._screenToImage(e.clientX, e.clientY);
       this.fire('click', {
         lngLat: { lng: coords[0], lat: coords[1] },

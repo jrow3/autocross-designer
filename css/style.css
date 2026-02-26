@@ -1066,6 +1066,239 @@ body {
   color: rgba(255,255,255,0.8);
 }
 
+/* ===== Arrow Markers ===== */
+.arrow-marker {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  position: relative;
+}
+
+.arrow-shape {
+  font-size: 22px;
+  color: #f97316;
+  line-height: 1;
+  filter: drop-shadow(0 0 2px rgba(0,0,0,0.5));
+  transition: transform 0.1s;
+}
+
+.arrow-rotate-handle {
+  position: absolute;
+  top: -14px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 10px;
+  height: 10px;
+  background: rgba(249, 115, 22, 0.9);
+  border: 1px solid #ea580c;
+  border-radius: 50%;
+  cursor: grab;
+  z-index: 5;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.arrow-rotate-handle:active {
+  cursor: grabbing;
+}
+
+.arrow-marker:hover .arrow-rotate-handle {
+  opacity: 1;
+}
+
+/* ===== Obstacle Markers ===== */
+.obstacle-marker {
+  width: 22px;
+  height: 22px;
+  background: rgba(30, 30, 30, 0.85);
+  border: 2px solid #ef4444;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.obstacle-symbol {
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+/* ===== Worker Station Markers ===== */
+.worker-marker {
+  width: 24px;
+  height: 24px;
+  background: #3b82f6;
+  border: 2px solid #1d4ed8;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform 0.15s;
+}
+
+.worker-marker:hover {
+  transform: scale(1.15);
+}
+
+.worker-marker.worker-highlight {
+  animation: note-pulse 0.5s ease 3;
+}
+
+.worker-number {
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  pointer-events: none;
+}
+
+/* Worker items in sidebar */
+.worker-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  background: rgba(255,255,255,0.08);
+  border-radius: 4px;
+  font-size: 13px;
+  cursor: pointer;
+  margin-bottom: 4px;
+}
+
+.worker-item:hover {
+  background: rgba(59, 130, 246, 0.2);
+}
+
+.worker-item-number {
+  width: 20px;
+  height: 20px;
+  background: #3b82f6;
+  border-radius: 50%;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.worker-item-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: rgba(255,255,255,0.8);
+}
+
+/* ===== Layer Toggles ===== */
+.layer-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+  font-size: 13px;
+  color: rgba(255,255,255,0.8);
+  cursor: pointer;
+}
+
+.layer-toggle input[type="checkbox"] {
+  accent-color: #3b82f6;
+  width: 14px;
+  height: 14px;
+}
+
+/* ===== Venue Items ===== */
+.venue-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 8px;
+  background: rgba(255,255,255,0.08);
+  border-radius: 4px;
+  font-size: 13px;
+  margin-bottom: 4px;
+}
+
+.venue-item span {
+  cursor: pointer;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.venue-item span:hover {
+  color: #3b82f6;
+}
+
+.venue-item button {
+  background: none;
+  border: none;
+  color: #f87171;
+  cursor: pointer;
+  font-size: 16px;
+  padding: 0 2px;
+  margin-left: 6px;
+}
+
+.venue-item button:hover {
+  color: #ef4444;
+}
+
+/* ===== Multi-Select ===== */
+.multi-selected {
+  filter: drop-shadow(0 0 4px rgba(59, 130, 246, 0.9)) !important;
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
+
+.selection-box {
+  position: fixed;
+  border: 2px dashed #3b82f6;
+  background: rgba(59, 130, 246, 0.1);
+  z-index: 50;
+  pointer-events: none;
+}
+
+/* ===== Obstacle Type Selector ===== */
+.obstacle-type-select {
+  width: 100%;
+  padding: 4px 6px;
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 4px;
+  background: rgba(255,255,255,0.1);
+  color: #ddd;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+/* ===== Map Opacity Slider ===== */
+#map-opacity-control {
+  padding: 4px 6px;
+}
+
+#map-opacity {
+  width: 100%;
+  margin: 2px 0;
+  accent-color: #3b82f6;
+}
+
+/* ===== Undo/Redo Buttons ===== */
+.tool-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.tool-btn:disabled:hover {
+  background: transparent;
+}
+
 /* Utility */
 .hidden {
   display: none !important;

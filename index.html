@@ -52,6 +52,14 @@
         <span class="cone-icon cone-finish"></span>
         Finish
       </button>
+      <button class="tool-btn" data-tool="gate" title="Gate (place two cones)">
+        <span class="tool-icon">&#9553;</span>
+        Gate
+      </button>
+      <button class="tool-btn" data-tool="slalom" title="Slalom (click start and end)">
+        <span class="tool-icon">&#8767;</span>
+        Slalom
+      </button>
     </div>
     <div class="toolbar-section">
       <div class="toolbar-label">Place Elements</div>
@@ -63,6 +71,29 @@
         <span class="element-icon">&#9638;</span>
         Staging Grid
       </button>
+      <button class="tool-btn" data-tool="arrow" title="Directional Arrow">
+        <span class="element-icon">&#9654;</span>
+        Arrow
+      </button>
+      <button class="tool-btn" data-tool="worker" title="Worker Station">
+        <span class="element-icon" style="color:#3b82f6">&#9679;</span>
+        Worker
+      </button>
+    </div>
+    <div class="toolbar-section">
+      <div class="toolbar-label">Obstacles</div>
+      <button class="tool-btn" data-tool="obstacle" title="Place Obstacle/Hazard">
+        <span class="tool-icon" style="color:#ef4444">&#9888;</span>
+        Obstacle
+      </button>
+      <select id="obstacle-type-select" class="obstacle-type-select">
+        <option value="hazard">Hazard</option>
+        <option value="pole">Light Pole</option>
+        <option value="drain">Drain</option>
+        <option value="curb">Curb</option>
+        <option value="building">Building</option>
+        <option value="pothole">Pothole</option>
+      </select>
     </div>
     <div class="toolbar-section">
       <div class="toolbar-label">Tools</div>
@@ -90,6 +121,14 @@
         <span class="tool-icon">&#128065;</span>
         Measures
       </button>
+      <button class="tool-btn" id="btn-undo" title="Undo (Ctrl+Z)" disabled>
+        <span class="tool-icon">&#8630;</span>
+        Undo
+      </button>
+      <button class="tool-btn" id="btn-redo" title="Redo (Ctrl+Y)" disabled>
+        <span class="tool-icon">&#8631;</span>
+        Redo
+      </button>
     </div>
     <div class="toolbar-section image-mode-only hidden">
       <div class="toolbar-label">Scale</div>
@@ -98,6 +137,13 @@
         Set Scale
       </button>
       <div id="scale-status" class="toolbar-hint">Not calibrated</div>
+    </div>
+    <div class="toolbar-section">
+      <div class="toolbar-label">View</div>
+      <div id="map-opacity-control">
+        <label class="toolbar-sublabel" for="map-opacity">Map Opacity</label>
+        <input type="range" id="map-opacity" min="10" max="100" value="100">
+      </div>
     </div>
     <div class="toolbar-section">
       <div class="toolbar-label">Grid</div>
@@ -120,6 +166,10 @@
     </div>
     <div class="toolbar-section">
       <div class="toolbar-label">Course</div>
+      <button class="tool-btn" id="btn-save" title="Save Course (Ctrl+S)">
+        <span class="tool-icon">&#128190;</span>
+        Save
+      </button>
       <button class="tool-btn" id="btn-print" title="Print to Image">
         <span class="tool-icon">&#128438;</span>
         Print
@@ -131,6 +181,10 @@
       <button class="tool-btn" id="btn-import" title="Import JSON">
         <span class="tool-icon">&#128229;</span>
         Import
+      </button>
+      <button class="tool-btn" id="btn-share" title="Share via URL">
+        <span class="tool-icon">&#128279;</span>
+        Share
       </button>
       <input type="file" id="import-file" accept=".json" style="display:none">
     </div>
@@ -164,9 +218,22 @@
         <div id="cone-count">Cones: 0</div>
         <div id="line-length">Line: -- ft</div>
       </div>
+      <h3>Layers</h3>
+      <div id="layers-list"></div>
       <h3>Notes</h3>
       <div id="notes-list"></div>
-      <div id="saved-list" class="hidden"></div>
+      <h3>Workers</h3>
+      <div id="workers-list"></div>
+      <h3>Venues</h3>
+      <div id="venues-controls" style="margin-bottom:6px">
+        <button class="tool-btn" id="btn-save-venue" title="Save current obstacles as venue">
+          <span class="tool-icon">&#128190;</span>
+          Save Venue
+        </button>
+      </div>
+      <div id="venues-list"></div>
+      <h3>Saved Courses</h3>
+      <div id="saved-list"></div>
     </div>
   </div>
 
@@ -215,6 +282,14 @@
   <script src="js/measurements.js"></script>
   <script src="js/notes.js"></script>
   <script src="js/grid.js"></script>
+  <script src="js/history.js"></script>
+  <script src="js/arrows.js"></script>
+  <script src="js/obstacles.js"></script>
+  <script src="js/workers.js"></script>
+  <script src="js/layers.js"></script>
+  <script src="js/sharing.js"></script>
+  <script src="js/venue.js"></script>
+  <script src="js/selection.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>

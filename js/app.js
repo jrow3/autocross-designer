@@ -1,7 +1,7 @@
 // app.js — App init, state management, event wiring
 
 const App = {
-  activeTool: 'regular',  // current tool: regular, pointer, start-cone, finish-cone, select, drivingline, scale, measure, note, trailer, staging-grid
+  activeTool: 'regular',  // current tool
   selectedCone: null,
   map: null,
   mode: 'map',           // 'map' or 'image'
@@ -9,8 +9,13 @@ const App = {
   _scalePoints: [],       // temp array for scale calibration clicks [{x,y}]
   _scaleMarkers: [],      // temp DOM elements for scale point display
   _scaleLine: null,       // temp SVG line overlay
+  _slalomStart: null,     // first click for slalom tool
+  _boxSelecting: false,   // box selection state
 
   async init() {
+    // Check for shared course in URL
+    const sharedCourse = Sharing.loadFromURL();
+
     // Check for pending cross-mode import
     const pendingRaw = sessionStorage.getItem('autocross-pending-import');
     let autoMode = undefined;
@@ -32,6 +37,9 @@ const App = {
     } else {
       this._initImageMode(choice.imageSrc, choice.fileName);
     }
+
+    // Store shared course for loading after init
+    this._sharedCourse = sharedCourse;
   },
 
   /** Initialize in normal Mapbox map mode */
@@ -98,6 +106,22 @@ const App = {
 
     Grid.init(this.map);
 
+    // Initialize new modules
+    Arrows.init(this.map, {
+      onUpdate: () => this._updateInfo(),
+    });
+
+    Obstacles.init(this.map, {
+      onUpdate: () => this._updateInfo(),
+    });
+
+    Workers.init(this.map, {
+      onUpdate: () => this._updateInfo(),
+    });
+
+    Layers.init();
+    Selection.init();
+
     // Wire up map click
     this.map.on('click', (e) => this._handleMapClick(e));
 
@@ -119,11 +143,29 @@ const App = {
     // Wire up save/export/import
     this._setupStorage();
 
+    // Wire up keyboard shortcuts
+    this._setupKeyboardShortcuts();
+
+    // Wire up map opacity control
+    this._setupMapOpacity();
+
+    // Wire up obstacle type selector
+    this._setupObstacleSelector();
+
+    // Wire up box selection
+    this._setupBoxSelection();
+
+    // Wire up venue buttons
+    this._setupVenue();
+
     // Load saved courses list
     this._refreshSavedList();
 
     // Set default tool active
     this._setActiveTool('regular');
+
+    // Take initial history snapshot
+    History.push();
 
     // Apply pending cross-mode import if present
     const pendingRaw = sessionStorage.getItem('autocross-pending-import');
@@ -133,6 +175,12 @@ const App = {
         const data = JSON.parse(pendingRaw);
         this._loadCourseData(data);
       } catch {}
+    }
+
+    // Load shared course if present
+    if (this._sharedCourse) {
+      this._loadCourseData(this._sharedCourse);
+      this._sharedCourse = null;
     }
   },
 
@@ -147,15 +195,43 @@ const App = {
       case 'finish-cone':
       case 'trailer':
       case 'staging-grid':
+        History.push();
         Cones.place(this.activeTool, lngLat);
+        break;
+
+      case 'gate':
+        History.push();
+        this._placeGate(lngLat);
+        break;
+
+      case 'slalom':
+        this._handleSlalomClick(lngLat);
+        break;
+
+      case 'arrow':
+        History.push();
+        Arrows.placeArrow(lngLat);
+        break;
+
+      case 'obstacle':
+        History.push();
+        Obstacles.placeObstacle(lngLat);
+        break;
+
+      case 'worker':
+        History.push();
+        Workers.placeStation(lngLat);
+        this._updateInfo();
         break;
 
       case 'select':
         // Clicking on empty map deselects
         this._deselectCone();
+        Selection.clear();
         break;
 
       case 'drivingline':
+        History.push();
         DrivingLine.addWaypoint(lngLat);
         break;
 
@@ -164,6 +240,7 @@ const App = {
         break;
 
       case 'note':
+        History.push();
         Notes.addNote(lngLat);
         break;
 
@@ -233,6 +310,92 @@ const App = {
     return closest;
   },
 
+  // ===== Gate Tool =====
+
+  /** Place a gate (two cones perpendicular, 20ft apart) */
+  _placeGate(lngLat) {
+    const gateWidth = 20; // feet
+    const halfWidth = gateWidth / 2;
+
+    let offsetLng, offsetLat;
+    if (this.mode === 'image') {
+      const scale = ImageMap.hasScale() ? ImageMap.getScale() : 1;
+      const offsetPx = halfWidth / scale;
+      offsetLng = offsetPx;
+      offsetLat = 0;
+    } else {
+      // ~3.048m = 10ft. Gate = 20ft = 6.096m
+      // At equator: 1 degree ~ 111,320m
+      const metersPerDegLng = 111320 * Math.cos(lngLat.lat * Math.PI / 180);
+      const metersPerDegLat = 110540;
+      offsetLng = (halfWidth / 3.28084) / metersPerDegLng;
+      offsetLat = 0;
+    }
+
+    // Place two cones offset east-west from click point
+    Cones.place('regular', lngLat, [lngLat.lng - offsetLng, lngLat.lat - offsetLat]);
+    Cones.place('regular', lngLat, [lngLat.lng + offsetLng, lngLat.lat + offsetLat]);
+  },
+
+  // ===== Slalom Tool =====
+
+  /** Handle slalom click (two-click placement) */
+  _handleSlalomClick(lngLat) {
+    if (!this._slalomStart) {
+      this._slalomStart = lngLat;
+      this._showToast('Click the end position for the slalom', 'info');
+    } else {
+      const start = this._slalomStart;
+      this._slalomStart = null;
+
+      const countStr = prompt('Number of cones in slalom:', '5');
+      const count = parseInt(countStr);
+      if (!count || count < 2) return;
+
+      History.push();
+
+      // Place cones evenly between start and end
+      for (let i = 0; i < count; i++) {
+        const t = i / (count - 1);
+        const lng = start.lng + (lngLat.lng - start.lng) * t;
+        const lat = start.lat + (lngLat.lat - start.lat) * t;
+        Cones.place('regular', { lng, lat }, [lng, lat]);
+      }
+    }
+  },
+
+  // ===== Box Selection =====
+
+  _setupBoxSelection() {
+    const mapContainer = document.getElementById('map');
+    let boxStartX, boxStartY;
+
+    mapContainer.addEventListener('mousedown', (e) => {
+      if (this.activeTool !== 'select') return;
+      if (e.target.closest('.cone-marker, .waypoint-marker, .note-marker, .arrow-marker, .obstacle-marker, .worker-marker, .measurement-endpoint, .measurement-label')) return;
+      if (e.button !== 0) return;
+
+      // Only start box select if shift is held, to avoid conflicting with pan
+      if (!e.shiftKey) return;
+
+      this._boxSelecting = true;
+      boxStartX = e.clientX;
+      boxStartY = e.clientY;
+      Selection.startBox(boxStartX, boxStartY);
+    });
+
+    document.addEventListener('mousemove', (e) => {
+      if (!this._boxSelecting) return;
+      Selection.updateBox(e.clientX, e.clientY);
+    });
+
+    document.addEventListener('mouseup', (e) => {
+      if (!this._boxSelecting) return;
+      this._boxSelecting = false;
+      Selection.endBox(e.clientX, e.clientY);
+    });
+  },
+
   /** Set up toolbar button clicks */
   _setupToolbar() {
     document.querySelectorAll('.tool-btn[data-tool]').forEach(btn => {
@@ -242,6 +405,7 @@ const App = {
     });
 
     document.getElementById('btn-clear-line').addEventListener('click', () => {
+      History.push();
       DrivingLine.clear();
     });
 
@@ -249,6 +413,13 @@ const App = {
       const visible = Measurements.toggleVisibility();
       document.getElementById('btn-toggle-measures').classList.toggle('active', visible);
     });
+
+    // Undo/Redo buttons
+    document.getElementById('btn-undo').addEventListener('click', () => History.undo());
+    document.getElementById('btn-redo').addEventListener('click', () => History.redo());
+
+    // Share button
+    document.getElementById('btn-share').addEventListener('click', () => Sharing.share());
   },
 
   /** Set the active tool and update button styles */
@@ -264,8 +435,14 @@ const App = {
       Measurements.cancelPending();
     }
 
+    // Cancel slalom start if switching away
+    if (this.activeTool === 'slalom' && tool !== 'slalom') {
+      this._slalomStart = null;
+    }
+
     this.activeTool = tool;
     this._deselectCone();
+    Selection.clear();
 
     // Update active button style
     document.querySelectorAll('.tool-btn[data-tool]').forEach(btn => {
@@ -388,6 +565,8 @@ const App = {
     // Draw cones (render markers onto canvas)
     const dpr = this.mode === 'image' ? 1 : window.devicePixelRatio;
     for (const cone of Cones.cones) {
+      // Skip if cones layer is hidden
+      if (!Layers.isVisible('cones')) continue;
       const pos = this.mode === 'image'
         ? { x: cone.lngLat[0], y: cone.lngLat[1] }
         : this.map.project(cone.lngLat);
@@ -465,74 +644,154 @@ const App = {
       ctx.restore();
     }
 
-    // Draw measurement lines
-    for (const m of Measurements.measurements) {
-      const p1pos = this.mode === 'image'
-        ? { x: m.points[0][0], y: m.points[0][1] }
-        : this.map.project(m.points[0]);
-      const p2pos = this.mode === 'image'
-        ? { x: m.points[1][0], y: m.points[1][1] }
-        : this.map.project(m.points[1]);
-      const x1 = p1pos.x * dpr, y1 = p1pos.y * dpr;
-      const x2 = p2pos.x * dpr, y2 = p2pos.y * dpr;
+    // Draw arrows
+    if (Layers.isVisible('arrows')) {
+      for (const arrow of Arrows.arrows) {
+        const pos = this.mode === 'image'
+          ? { x: arrow.lngLat[0], y: arrow.lngLat[1] }
+          : this.map.project(arrow.lngLat);
+        const ax = pos.x * dpr;
+        const ay = pos.y * dpr;
 
-      ctx.save();
-      ctx.setLineDash([4 * dpr, 3 * dpr]);
-      ctx.beginPath();
-      ctx.moveTo(x1, y1);
-      ctx.lineTo(x2, y2);
-      ctx.strokeStyle = '#f472b6';
-      ctx.lineWidth = 2 * dpr;
-      ctx.stroke();
-      ctx.setLineDash([]);
-
-      // Endpoints
-      [{ x: x1, y: y1 }, { x: x2, y: y2 }].forEach(p => {
+        ctx.save();
+        ctx.translate(ax, ay);
+        ctx.rotate((arrow.rotation || 0) * Math.PI / 180);
         ctx.beginPath();
-        ctx.arc(p.x, p.y, 4 * dpr, 0, Math.PI * 2);
-        ctx.fillStyle = '#f472b6';
+        ctx.moveTo(10 * dpr, 0);
+        ctx.lineTo(-6 * dpr, -7 * dpr);
+        ctx.lineTo(-6 * dpr, 7 * dpr);
+        ctx.closePath();
+        ctx.fillStyle = '#f97316';
         ctx.fill();
-      });
+        ctx.restore();
+      }
+    }
 
-      // Label at midpoint
-      const mx = (x1 + x2) / 2;
-      const my = (y1 + y2) / 2;
-      const label = Measurements._computeDistanceLabel(m.points[0], m.points[1]);
-      ctx.font = `bold ${12 * dpr}px sans-serif`;
-      const tw = ctx.measureText(label).width;
-      ctx.fillStyle = 'rgba(190, 24, 93, 0.9)';
-      ctx.beginPath();
-      ctx.roundRect(mx - tw / 2 - 4 * dpr, my - 16 * dpr, tw + 8 * dpr, 18 * dpr, 3 * dpr);
-      ctx.fill();
-      ctx.fillStyle = '#fff';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText(label, mx, my - 7 * dpr);
-      ctx.restore();
+    // Draw obstacles
+    if (Layers.isVisible('obstacles')) {
+      for (const obs of Obstacles.obstacles) {
+        const typeDef = OBSTACLE_TYPES.find(t => t.id === obs.type) || OBSTACLE_TYPES[5];
+        const pos = this.mode === 'image'
+          ? { x: obs.lngLat[0], y: obs.lngLat[1] }
+          : this.map.project(obs.lngLat);
+        const ox = pos.x * dpr;
+        const oy = pos.y * dpr;
+
+        ctx.save();
+        ctx.fillStyle = 'rgba(30,30,30,0.85)';
+        ctx.beginPath();
+        ctx.roundRect(ox - 11 * dpr, oy - 11 * dpr, 22 * dpr, 22 * dpr, 4 * dpr);
+        ctx.fill();
+        ctx.strokeStyle = '#ef4444';
+        ctx.lineWidth = 2 * dpr;
+        ctx.stroke();
+        ctx.fillStyle = typeDef.color;
+        ctx.font = `bold ${14 * dpr}px sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(typeDef.symbol, ox, oy);
+        ctx.restore();
+      }
+    }
+
+    // Draw worker stations
+    if (Layers.isVisible('workers')) {
+      for (const w of Workers.stations) {
+        const pos = this.mode === 'image'
+          ? { x: w.lngLat[0], y: w.lngLat[1] }
+          : this.map.project(w.lngLat);
+        const wx = pos.x * dpr;
+        const wy = pos.y * dpr;
+
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(wx, wy, 12 * dpr, 0, Math.PI * 2);
+        ctx.fillStyle = '#3b82f6';
+        ctx.fill();
+        ctx.strokeStyle = '#1d4ed8';
+        ctx.lineWidth = 2 * dpr;
+        ctx.stroke();
+        ctx.fillStyle = '#fff';
+        ctx.font = `bold ${11 * dpr}px sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(String(w.number), wx, wy);
+        ctx.restore();
+      }
+    }
+
+    // Draw measurement lines
+    if (Layers.isVisible('measurements')) {
+      for (const m of Measurements.measurements) {
+        const p1pos = this.mode === 'image'
+          ? { x: m.points[0][0], y: m.points[0][1] }
+          : this.map.project(m.points[0]);
+        const p2pos = this.mode === 'image'
+          ? { x: m.points[1][0], y: m.points[1][1] }
+          : this.map.project(m.points[1]);
+        const x1 = p1pos.x * dpr, y1 = p1pos.y * dpr;
+        const x2 = p2pos.x * dpr, y2 = p2pos.y * dpr;
+
+        ctx.save();
+        ctx.setLineDash([4 * dpr, 3 * dpr]);
+        ctx.beginPath();
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.strokeStyle = '#f472b6';
+        ctx.lineWidth = 2 * dpr;
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        // Endpoints
+        [{ x: x1, y: y1 }, { x: x2, y: y2 }].forEach(p => {
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, 4 * dpr, 0, Math.PI * 2);
+          ctx.fillStyle = '#f472b6';
+          ctx.fill();
+        });
+
+        // Label at midpoint
+        const mx = (x1 + x2) / 2;
+        const my = (y1 + y2) / 2;
+        const label = Measurements._computeDistanceLabel(m.points[0], m.points[1]);
+        ctx.font = `bold ${12 * dpr}px sans-serif`;
+        const tw = ctx.measureText(label).width;
+        ctx.fillStyle = 'rgba(190, 24, 93, 0.9)';
+        ctx.beginPath();
+        ctx.roundRect(mx - tw / 2 - 4 * dpr, my - 16 * dpr, tw + 8 * dpr, 18 * dpr, 3 * dpr);
+        ctx.fill();
+        ctx.fillStyle = '#fff';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(label, mx, my - 7 * dpr);
+        ctx.restore();
+      }
     }
 
     // Draw note markers
-    for (const n of Notes.notes) {
-      const pos = this.mode === 'image'
-        ? { x: n.lngLat[0], y: n.lngLat[1] }
-        : this.map.project(n.lngLat);
-      const nx = pos.x * dpr;
-      const ny = pos.y * dpr;
+    if (Layers.isVisible('notes')) {
+      for (const n of Notes.notes) {
+        const pos = this.mode === 'image'
+          ? { x: n.lngLat[0], y: n.lngLat[1] }
+          : this.map.project(n.lngLat);
+        const nx = pos.x * dpr;
+        const ny = pos.y * dpr;
 
-      ctx.save();
-      ctx.beginPath();
-      ctx.arc(nx, ny, 12 * dpr, 0, Math.PI * 2);
-      ctx.fillStyle = '#8b5cf6';
-      ctx.fill();
-      ctx.strokeStyle = '#6d28d9';
-      ctx.lineWidth = 2 * dpr;
-      ctx.stroke();
-      ctx.fillStyle = '#fff';
-      ctx.font = `bold ${11 * dpr}px sans-serif`;
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText(String(n.number), nx, ny);
-      ctx.restore();
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(nx, ny, 12 * dpr, 0, Math.PI * 2);
+        ctx.fillStyle = '#8b5cf6';
+        ctx.fill();
+        ctx.strokeStyle = '#6d28d9';
+        ctx.lineWidth = 2 * dpr;
+        ctx.stroke();
+        ctx.fillStyle = '#fff';
+        ctx.font = `bold ${11 * dpr}px sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(String(n.number), nx, ny);
+        ctx.restore();
+      }
     }
 
     // Draw grid if requested
@@ -541,6 +800,9 @@ const App = {
       ctx.drawImage(gridCanvas, 0, 0, gridCanvas.width, gridCanvas.height,
         0, 0, resultCanvas.width, resultCanvas.height);
     }
+
+    // Draw scale bar
+    this._drawScaleBar(ctx, resultCanvas.width, resultCanvas.height, dpr);
 
     // Download
     resultCanvas.toBlob((blob) => {
@@ -553,6 +815,58 @@ const App = {
     }, 'image/png');
   },
 
+  /** Draw a scale bar on the export canvas */
+  _drawScaleBar(ctx, canvasWidth, canvasHeight, dpr) {
+    const barWidthPx = 200 * dpr;
+    const barX = 20 * dpr;
+    const barY = canvasHeight - 30 * dpr;
+    const barHeight = 8 * dpr;
+
+    // Calculate real distance for barWidthPx
+    let distFeet;
+    if (this.mode === 'image') {
+      if (!ImageMap.hasScale()) return;
+      distFeet = (barWidthPx / dpr) * ImageMap.getScale();
+    } else {
+      const mpp = Grid._metersPerPixel();
+      const distMeters = (barWidthPx / dpr) * mpp;
+      distFeet = distMeters * 3.28084;
+    }
+
+    // Round to a nice number
+    const niceValues = [10, 20, 25, 50, 100, 200, 250, 500, 1000, 2000];
+    let niceDist = niceValues[0];
+    for (const v of niceValues) {
+      if (v <= distFeet) niceDist = v;
+    }
+    // Adjust bar width to match the nice distance
+    const adjustedBarWidth = barWidthPx * (niceDist / distFeet);
+
+    // Draw bar background
+    ctx.save();
+    ctx.fillStyle = 'rgba(0,0,0,0.7)';
+    ctx.beginPath();
+    ctx.roundRect(barX - 6 * dpr, barY - 18 * dpr, adjustedBarWidth + 12 * dpr, barHeight + 26 * dpr, 4 * dpr);
+    ctx.fill();
+
+    // Draw bar
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(barX, barY, adjustedBarWidth, barHeight);
+
+    // Draw tick marks
+    ctx.fillRect(barX, barY - 4 * dpr, 2 * dpr, barHeight + 4 * dpr);
+    ctx.fillRect(barX + adjustedBarWidth - 2 * dpr, barY - 4 * dpr, 2 * dpr, barHeight + 4 * dpr);
+    ctx.fillRect(barX + adjustedBarWidth / 2 - 1 * dpr, barY - 2 * dpr, 2 * dpr, barHeight + 2 * dpr);
+
+    // Draw label
+    ctx.fillStyle = '#fff';
+    ctx.font = `bold ${11 * dpr}px sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'bottom';
+    ctx.fillText(`${niceDist} ft`, barX + adjustedBarWidth / 2, barY - 4 * dpr);
+    ctx.restore();
+  },
+
   /** Set up save/export/import buttons */
   _setupStorage() {
     // Save
@@ -560,34 +874,14 @@ const App = {
       const name = prompt('Course name:');
       if (!name) return;
 
-      const center = this.map.getCenter();
-      const data = Storage.serialize(
-        Cones.getData(),
-        DrivingLine.getData(),
-        Measurements.getData(),
-        Notes.getData(),
-        center.toArray ? center.toArray() : [center.lng, center.lat],
-        this.map.getZoom(),
-        this.mode === 'image',
-        this.imageFileName
-      );
+      const data = this._serializeFull();
       Storage.save(name, data);
       this._refreshSavedList();
     });
 
     // Export
     document.getElementById('btn-export').addEventListener('click', () => {
-      const center = this.map.getCenter();
-      const data = Storage.serialize(
-        Cones.getData(),
-        DrivingLine.getData(),
-        Measurements.getData(),
-        Notes.getData(),
-        center.toArray ? center.toArray() : [center.lng, center.lat],
-        this.map.getZoom(),
-        this.mode === 'image',
-        this.imageFileName
-      );
+      const data = this._serializeFull();
       Storage.exportJSON(data, 'autocross-course.json');
     });
 
@@ -610,6 +904,7 @@ const App = {
           location.reload();
           return;
         }
+        History.push();
         this._loadCourseData(data);
         importFile.value = ''; // reset
       }).catch(err => {
@@ -618,12 +913,35 @@ const App = {
     });
   },
 
+  /** Serialize all current state */
+  _serializeFull() {
+    const center = this.map.getCenter();
+    const data = Storage.serialize(
+      Cones.getData(),
+      DrivingLine.getData(),
+      Measurements.getData(),
+      Notes.getData(),
+      center.toArray ? center.toArray() : [center.lng, center.lat],
+      this.map.getZoom(),
+      this.mode === 'image',
+      this.imageFileName
+    );
+    // Add new element types
+    data.arrows = Arrows.getData();
+    data.obstacles = Obstacles.getData();
+    data.workers = Workers.getData();
+    return data;
+  },
+
   /** Load course data (from save or import) */
   _loadCourseData(data) {
     if (data.cones) Cones.loadData(data.cones);
     if (data.drivingLine) DrivingLine.loadData(data.drivingLine);
     if (data.measurements) Measurements.loadData(data.measurements);
     if (data.notes) Notes.loadData(data.notes);
+    if (data.arrows) Arrows.loadData(data.arrows);
+    if (data.obstacles) Obstacles.loadData(data.obstacles);
+    if (data.workers) Workers.loadData(data.workers);
     if (data.mapCenter && data.mapZoom && this.mode === 'map') {
       MapModule.flyTo(data.mapCenter, data.mapZoom);
     }
@@ -655,7 +973,10 @@ const App = {
     list.querySelectorAll('span[data-name]').forEach(el => {
       el.addEventListener('click', () => {
         const data = Storage.load(el.dataset.name);
-        if (data) this._loadCourseData(data);
+        if (data) {
+          History.push();
+          this._loadCourseData(data);
+        }
       });
     });
 
@@ -684,7 +1005,147 @@ const App = {
     }
 
     Notes.renderSidebar();
+    Workers.renderSidebar();
+    Venue.renderSidebar();
   },
+
+  // ===== Keyboard Shortcuts =====
+
+  _setupKeyboardShortcuts() {
+    document.addEventListener('keydown', (e) => {
+      // Don't trigger shortcuts when typing in inputs
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') return;
+
+      // Ctrl+Z — Undo
+      if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key === 'z') {
+        e.preventDefault();
+        History.undo();
+        return;
+      }
+
+      // Ctrl+Y or Ctrl+Shift+Z — Redo
+      if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || (e.shiftKey && e.key === 'Z'))) {
+        e.preventDefault();
+        History.redo();
+        return;
+      }
+
+      // Ctrl+S — Save
+      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        e.preventDefault();
+        document.getElementById('btn-save').click();
+        return;
+      }
+
+      // Ctrl+A — Select all
+      if ((e.ctrlKey || e.metaKey) && e.key === 'a') {
+        e.preventDefault();
+        Selection.selectAll();
+        return;
+      }
+
+      // Delete / Backspace — Delete selected
+      if (e.key === 'Delete' || e.key === 'Backspace') {
+        if (Selection.count() > 0) {
+          Selection.deleteSelected();
+        } else if (this.selectedCone) {
+          History.push();
+          Cones.remove(this.selectedCone.id);
+          this._deselectCone();
+        }
+        return;
+      }
+
+      // Escape — Deselect / cancel tool
+      if (e.key === 'Escape') {
+        this._deselectCone();
+        Selection.clear();
+        this._slalomStart = null;
+        if (this.activeTool === 'measure') {
+          Measurements.cancelPending();
+        }
+        this._setActiveTool('select');
+        return;
+      }
+
+      // Number keys 1-9 for quick tool select
+      if (e.key >= '1' && e.key <= '9' && !e.ctrlKey && !e.metaKey) {
+        const tools = ['regular', 'pointer', 'start-cone', 'finish-cone', 'select', 'drivingline', 'measure', 'note', 'gate'];
+        const idx = parseInt(e.key) - 1;
+        if (idx < tools.length) {
+          this._setActiveTool(tools[idx]);
+        }
+        return;
+      }
+    });
+  },
+
+  // ===== Map Opacity =====
+
+  _setupMapOpacity() {
+    const slider = document.getElementById('map-opacity');
+    slider.addEventListener('input', () => {
+      const opacity = parseInt(slider.value) / 100;
+      if (this.mode === 'map') {
+        try {
+          // Try setting satellite layer opacity
+          this.map.setPaintProperty('satellite', 'raster-opacity', opacity);
+        } catch (e) {
+          // Try mapbox standard satellite style layers
+          try {
+            const style = this.map.getStyle();
+            if (style && style.layers) {
+              for (const layer of style.layers) {
+                if (layer.type === 'raster') {
+                  this.map.setPaintProperty(layer.id, 'raster-opacity', opacity);
+                }
+              }
+            }
+          } catch (e2) {}
+        }
+      } else {
+        // Image mode: apply CSS filter
+        const wrapper = ImageMap._wrapper;
+        if (wrapper) {
+          wrapper.style.opacity = opacity;
+        }
+      }
+    });
+  },
+
+  // ===== Obstacle Type Selector =====
+
+  _setupObstacleSelector() {
+    const select = document.getElementById('obstacle-type-select');
+    select.addEventListener('change', () => {
+      Obstacles.setType(select.value);
+    });
+  },
+
+  // ===== Venue =====
+
+  _setupVenue() {
+    document.getElementById('btn-save-venue').addEventListener('click', () => {
+      Venue.saveVenue();
+    });
+    Venue.renderSidebar();
+  },
+
+  // ===== Toast =====
+
+  _showToast(message, type) {
+    const container = document.getElementById('toast-container');
+    if (!container) return;
+    const toast = document.createElement('div');
+    toast.className = `toast toast-${type || 'info'}`;
+    toast.textContent = message;
+    container.appendChild(toast);
+    setTimeout(() => {
+      toast.classList.add('toast-fade-out');
+      setTimeout(() => toast.remove(), 300);
+    }, 3000);
+  },
+
   // ===== Scale Calibration (Image Mode) =====
 
   /** Handle a click while in scale tool mode */
