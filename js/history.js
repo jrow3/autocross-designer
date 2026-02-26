@@ -46,7 +46,6 @@ const History = {
       drivingLine: DrivingLine.getData(),
       measurements: Measurements.getData(),
       notes: Notes.getData(),
-      arrows: typeof Arrows !== 'undefined' ? Arrows.getData() : [],
       obstacles: typeof Obstacles !== 'undefined' ? Obstacles.getData() : [],
       workers: typeof Workers !== 'undefined' ? Workers.getData() : [],
     };
@@ -58,7 +57,6 @@ const History = {
     if (snapshot.drivingLine) DrivingLine.loadData(snapshot.drivingLine);
     if (snapshot.measurements) Measurements.loadData(snapshot.measurements);
     if (snapshot.notes) Notes.loadData(snapshot.notes);
-    if (snapshot.arrows && typeof Arrows !== 'undefined') Arrows.loadData(snapshot.arrows);
     if (snapshot.obstacles && typeof Obstacles !== 'undefined') Obstacles.loadData(snapshot.obstacles);
     if (snapshot.workers && typeof Workers !== 'undefined') Workers.loadData(snapshot.workers);
 

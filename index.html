@@ -44,6 +44,19 @@
         <span class="cone-icon cone-pointer"></span>
         Pointer
       </button>
+      <button class="tool-btn" data-tool="gate" title="Gate (place two cones)">
+        <span class="tool-icon">&#9553;</span>
+        Gate
+      </button>
+      <div class="gate-width-row">
+        <label class="toolbar-sublabel" for="gate-width-input">Width</label>
+        <input type="number" id="gate-width-input" min="1" max="100" step="1" value="20">
+        <span class="toolbar-sublabel">ft</span>
+      </div>
+      <button class="tool-btn" data-tool="slalom" title="Slalom (click start and end)">
+        <span class="tool-icon">&#8767;</span>
+        Slalom
+      </button>
       <button class="tool-btn" data-tool="start-cone" title="Start Cone (green)">
         <span class="cone-icon cone-start"></span>
         Start
@@ -51,14 +64,6 @@
       <button class="tool-btn" data-tool="finish-cone" title="Finish Cone (checkered)">
         <span class="cone-icon cone-finish"></span>
         Finish
-      </button>
-      <button class="tool-btn" data-tool="gate" title="Gate (place two cones)">
-        <span class="tool-icon">&#9553;</span>
-        Gate
-      </button>
-      <button class="tool-btn" data-tool="slalom" title="Slalom (click start and end)">
-        <span class="tool-icon">&#8767;</span>
-        Slalom
       </button>
     </div>
     <div class="toolbar-section">
@@ -71,17 +76,10 @@
         <span class="element-icon">&#9638;</span>
         Staging Grid
       </button>
-      <button class="tool-btn" data-tool="arrow" title="Directional Arrow">
-        <span class="element-icon">&#9654;</span>
-        Arrow
-      </button>
       <button class="tool-btn" data-tool="worker" title="Worker Station">
         <span class="element-icon" style="color:#3b82f6">&#9679;</span>
         Worker
       </button>
-    </div>
-    <div class="toolbar-section">
-      <div class="toolbar-label">Obstacles</div>
       <button class="tool-btn" data-tool="obstacle" title="Place Obstacle/Hazard">
         <span class="tool-icon" style="color:#ef4444">&#9888;</span>
         Obstacle
@@ -97,7 +95,7 @@
     </div>
     <div class="toolbar-section">
       <div class="toolbar-label">Tools</div>
-      <button class="tool-btn" data-tool="select" title="Select & Measure">
+      <button class="tool-btn" data-tool="select" title="Box Select (one-shot)">
         <span class="tool-icon">&#9997;</span>
         Select
       </button>
@@ -116,10 +114,6 @@
       <button class="tool-btn" data-tool="note" title="Add Map Note">
         <span class="tool-icon">&#128221;</span>
         Note
-      </button>
-      <button class="tool-btn" id="btn-toggle-measures" title="Show/Hide Measurements">
-        <span class="tool-icon">&#128065;</span>
-        Measures
       </button>
       <button class="tool-btn" id="btn-undo" title="Undo (Ctrl+Z)" disabled>
         <span class="tool-icon">&#8630;</span>
@@ -144,9 +138,6 @@
         <label class="toolbar-sublabel" for="map-opacity">Map Opacity</label>
         <input type="range" id="map-opacity" min="10" max="100" value="100">
       </div>
-    </div>
-    <div class="toolbar-section">
-      <div class="toolbar-label">Grid</div>
       <button class="tool-btn" id="btn-grid-toggle" title="Toggle 10ft Grid">
         <span class="tool-icon">&#9638;</span>
         Grid
@@ -166,10 +157,6 @@
     </div>
     <div class="toolbar-section">
       <div class="toolbar-label">Course</div>
-      <button class="tool-btn" id="btn-save" title="Save Course (Ctrl+S)">
-        <span class="tool-icon">&#128190;</span>
-        Save
-      </button>
       <button class="tool-btn" id="btn-print" title="Print to Image">
         <span class="tool-icon">&#128438;</span>
         Print
@@ -253,6 +240,32 @@
     </div>
   </div>
 
+  <!-- Slalom Dialog -->
+  <div id="slalom-dialog" class="hidden">
+    <div class="scale-dialog-content">
+      <h3>Place Slalom</h3>
+      <div class="scale-input-row">
+        <label class="scale-unit" style="white-space:nowrap">Length</label>
+        <input type="number" id="slalom-length-input" min="1" step="any" placeholder="ft">
+        <span class="scale-unit">ft</span>
+      </div>
+      <div class="scale-input-row">
+        <label class="scale-unit" style="white-space:nowrap">Spacing</label>
+        <input type="number" id="slalom-spacing-input" min="1" step="any" placeholder="ft">
+        <span class="scale-unit">ft</span>
+      </div>
+      <div class="scale-input-row">
+        <label class="scale-unit" style="white-space:nowrap"># Cones</label>
+        <input type="number" id="slalom-count-input" min="2" step="1" placeholder="#">
+      </div>
+      <p class="scale-dialog-text" id="slalom-preview-text" style="margin-bottom:14px">Will place -- cones, -- ft apart</p>
+      <div class="scale-dialog-buttons">
+        <button id="slalom-confirm" class="print-btn-confirm">Place Cones</button>
+        <button id="slalom-cancel" class="print-btn-cancel">Cancel</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Scale hint overlay (image mode) -->
   <div id="scale-hint" class="hidden"></div>
 
@@ -283,7 +296,6 @@
   <script src="js/notes.js"></script>
   <script src="js/grid.js"></script>
   <script src="js/history.js"></script>
-  <script src="js/arrows.js"></script>
   <script src="js/obstacles.js"></script>
   <script src="js/workers.js"></script>
   <script src="js/layers.js"></script>

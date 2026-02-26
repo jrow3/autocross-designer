@@ -15,8 +15,6 @@ const Sharing = {
       App.imageFileName
     );
 
-    // Add new element types
-    data.arrows = typeof Arrows !== 'undefined' ? Arrows.getData() : [];
     data.obstacles = typeof Obstacles !== 'undefined' ? Obstacles.getData() : [];
     data.workers = typeof Workers !== 'undefined' ? Workers.getData() : [];
 

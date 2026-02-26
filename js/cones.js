@@ -141,10 +141,30 @@ const Cones = {
       this._updateElementTransform(cone);
     }
 
+    // Group drag: start tracking when drag begins on a multi-selected cone
+    marker.on('dragstart', () => {
+      if (typeof Selection !== 'undefined' && Selection.isSelected('cone', cone.id) && Selection.count() > 1) {
+        Selection.startGroupDrag('cone', cone.id);
+      }
+    });
+
+    // Group drag: move all selected items during drag
+    marker.on('drag', () => {
+      if (typeof Selection !== 'undefined' && Selection.isSelected('cone', cone.id) && Selection.count() > 1) {
+        const pos = marker.getLngLat();
+        Selection.updateGroupDrag(pos);
+      }
+    });
+
     // Update lngLat on drag
     marker.on('dragend', () => {
       const pos = marker.getLngLat();
       cone.lngLat = [pos.lng, pos.lat];
+
+      // If part of a group drag, finalize all positions
+      if (typeof Selection !== 'undefined' && Selection.isSelected('cone', cone.id) && Selection.count() > 1) {
+        Selection.endGroupDrag();
+      }
 
       // Update any measurements anchored to this cone
       if (typeof Measurements !== 'undefined') {

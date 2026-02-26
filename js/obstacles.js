@@ -51,9 +51,30 @@ const Obstacles = {
     const obstacle = { id, type, label: typeDef.label, lngLat: [lng, lat], marker };
     this.obstacles.push(obstacle);
 
+    // Group drag: start tracking when drag begins on a multi-selected obstacle
+    marker.on('dragstart', () => {
+      if (typeof Selection !== 'undefined' && Selection.isSelected('obstacle', obstacle.id) && Selection.count() > 1) {
+        Selection.startGroupDrag('obstacle', obstacle.id);
+      }
+    });
+
+    // Group drag: move all selected items during drag
+    marker.on('drag', () => {
+      if (typeof Selection !== 'undefined' && Selection.isSelected('obstacle', obstacle.id) && Selection.count() > 1) {
+        const pos = marker.getLngLat();
+        Selection.updateGroupDrag(pos);
+      }
+    });
+
     marker.on('dragend', () => {
       const pos = marker.getLngLat();
       obstacle.lngLat = [pos.lng, pos.lat];
+
+      // If part of a group drag, finalize all positions
+      if (typeof Selection !== 'undefined' && Selection.isSelected('obstacle', obstacle.id) && Selection.count() > 1) {
+        Selection.endGroupDrag();
+      }
+
       if (this._onUpdate) this._onUpdate();
     });
 

@@ -6,7 +6,6 @@ const Layers = {
   init() {
     this._layers = {
       cones:       { label: 'Cones',        visible: true },
-      arrows:      { label: 'Arrows',       visible: true },
       obstacles:   { label: 'Obstacles',    visible: true },
       workers:     { label: 'Workers',      visible: true },
       drivingLine: { label: 'Driving Line', visible: true },
@@ -53,11 +52,6 @@ const Layers = {
           c.marker.getElement().style.display = visible ? '' : 'none';
           if (c.marker._container) c.marker._container.style.display = visible ? '' : 'none';
         });
-        break;
-      case 'arrows':
-        if (typeof Arrows !== 'undefined') {
-          visible ? Arrows.show() : Arrows.hide();
-        }
         break;
       case 'obstacles':
         if (typeof Obstacles !== 'undefined') {

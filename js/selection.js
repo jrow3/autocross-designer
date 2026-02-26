@@ -7,6 +7,10 @@ const Selection = {
   _draggingBulk: false,
   _dragOffsets: [],
 
+  // Group drag state
+  _groupDragRef: null,     // { lng, lat } reference start position of dragged item
+  _groupDragItems: [],     // array of { type, id, startLngLat: [lng, lat] }
+
   init() {
     // Create selection box element
     this._boxEl = document.createElement('div');
@@ -49,13 +53,6 @@ const Selection = {
       this._selected.push({ type: 'cone', id: c.id });
       c.marker.getElement().classList.add('multi-selected');
     }
-    // Select all arrows
-    if (typeof Arrows !== 'undefined') {
-      for (const a of Arrows.arrows) {
-        this._selected.push({ type: 'arrow', id: a.id });
-        a.marker.getElement().classList.add('multi-selected');
-      }
-    }
     // Select all obstacles
     if (typeof Obstacles !== 'undefined') {
       for (const o of Obstacles.obstacles) {
@@ -82,9 +79,6 @@ const Selection = {
         case 'cone':
           Cones.remove(item.id);
           break;
-        case 'arrow':
-          if (typeof Arrows !== 'undefined') Arrows.removeArrow(item.id);
-          break;
         case 'obstacle':
           if (typeof Obstacles !== 'undefined') Obstacles.removeObstacle(item.id);
           break;
@@ -105,6 +99,86 @@ const Selection = {
   count() {
     return this._selected.length;
   },
+
+  // ===== Group Drag =====
+
+  /** Start a group drag — record starting positions of all selected items */
+  startGroupDrag(type, id) {
+    const obj = this._getItemObject(type, id);
+    if (!obj) return;
+
+    this._groupDragRef = { lng: obj.lngLat[0], lat: obj.lngLat[1] };
+    this._groupDragItems = [];
+
+    for (const sel of this._selected) {
+      // Skip the item being directly dragged (Mapbox handles it)
+      if (sel.type === type && sel.id === id) continue;
+      const itemObj = this._getItemObject(sel.type, sel.id);
+      if (itemObj) {
+        this._groupDragItems.push({
+          type: sel.type,
+          id: sel.id,
+          startLngLat: itemObj.lngLat.slice(),
+        });
+      }
+    }
+  },
+
+  /** Update group drag — apply delta from reference to all other selected items */
+  updateGroupDrag(newLngLat) {
+    if (!this._groupDragRef) return;
+
+    const dLng = newLngLat.lng - this._groupDragRef.lng;
+    const dLat = newLngLat.lat - this._groupDragRef.lat;
+
+    for (const item of this._groupDragItems) {
+      const obj = this._getItemObject(item.type, item.id);
+      if (!obj) continue;
+      const newPos = [item.startLngLat[0] + dLng, item.startLngLat[1] + dLat];
+      obj.marker.setLngLat(newPos);
+    }
+  },
+
+  /** End group drag — finalize all lngLat positions and update dependents */
+  endGroupDrag() {
+    if (!this._groupDragRef) return;
+
+    // Finalize positions for all items that were moved
+    for (const item of this._groupDragItems) {
+      const obj = this._getItemObject(item.type, item.id);
+      if (!obj) continue;
+      const pos = obj.marker.getLngLat();
+      obj.lngLat = [pos.lng, pos.lat];
+
+      // Update measurements for cones
+      if (item.type === 'cone' && typeof Measurements !== 'undefined') {
+        Measurements.updateConePosition(obj.id, obj.lngLat);
+      }
+    }
+
+    // Update pointer rotations after all cones have moved
+    Cones._updateAllPointerRotations();
+
+    this._groupDragRef = null;
+    this._groupDragItems = [];
+  },
+
+  /** Get the underlying data object for a selected item */
+  _getItemObject(type, id) {
+    switch (type) {
+      case 'cone':
+        return Cones.cones.find(c => c.id === id) || null;
+      case 'obstacle':
+        if (typeof Obstacles === 'undefined') return null;
+        return Obstacles.obstacles.find(o => o.id === id) || null;
+      case 'worker':
+        if (typeof Workers === 'undefined') return null;
+        return Workers.stations.find(w => w.id === id) || null;
+    }
+    return null;
+  },
+
+  // ===== Box Selection =====
 
   /** Start box selection */
   startBox(screenX, screenY) {
@@ -162,16 +236,6 @@ const Selection = {
         c.marker.getElement().classList.add('multi-selected');
       }
     }
-    // Check arrows
-    if (typeof Arrows !== 'undefined') {
-      for (const a of Arrows.arrows) {
-        const p = project(a.lngLat);
-        if (p.x >= x1 && p.x <= x2 && p.y >= y1 && p.y <= y2) {
-          this._selected.push({ type: 'arrow', id: a.id });
-          a.marker.getElement().classList.add('multi-selected');
-        }
-      }
-    }
     // Check obstacles
     if (typeof Obstacles !== 'undefined') {
       for (const o of Obstacles.obstacles) {
@@ -200,11 +264,6 @@ const Selection = {
       case 'cone': {
         const c = Cones.cones.find(c => c.id === item.id);
         return c ? c.marker.getElement() : null;
-      }
-      case 'arrow': {
-        if (typeof Arrows === 'undefined') return null;
-        const a = Arrows.arrows.find(a => a.id === item.id);
-        return a ? a.marker.getElement() : null;
       }
       case 'obstacle': {
         if (typeof Obstacles === 'undefined') return null;

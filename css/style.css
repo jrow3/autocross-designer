@@ -268,7 +268,6 @@ body {
 /* Map Markers - Cones */
 .cone-marker {
   cursor: crosshair;
-  transition: transform 0.1s;
 }
 
 .cone-marker.selected {
@@ -759,7 +758,8 @@ body {
   z-index: 4;
 }
 
-#scale-dialog {
+#scale-dialog,
+#slalom-dialog {
   position: fixed;
   top: 0;
   left: 0;
@@ -1066,49 +1066,6 @@ body {
   color: rgba(255,255,255,0.8);
 }
 
-/* ===== Arrow Markers ===== */
-.arrow-marker {
-  width: 28px;
-  height: 28px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  position: relative;
-}
-
-.arrow-shape {
-  font-size: 22px;
-  color: #f97316;
-  line-height: 1;
-  filter: drop-shadow(0 0 2px rgba(0,0,0,0.5));
-  transition: transform 0.1s;
-}
-
-.arrow-rotate-handle {
-  position: absolute;
-  top: -14px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 10px;
-  height: 10px;
-  background: rgba(249, 115, 22, 0.9);
-  border: 1px solid #ea580c;
-  border-radius: 50%;
-  cursor: grab;
-  z-index: 5;
-  opacity: 0;
-  transition: opacity 0.15s;
-}
-
-.arrow-rotate-handle:active {
-  cursor: grabbing;
-}
-
-.arrow-marker:hover .arrow-rotate-handle {
-  opacity: 1;
-}
-
 /* ===== Obstacle Markers ===== */
 .obstacle-marker {
   width: 22px;
@@ -1297,6 +1254,32 @@ body {
 
 .tool-btn:disabled:hover {
   background: transparent;
+}
+
+/* Gate width control */
+.gate-width-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 6px;
+}
+
+#gate-width-input {
+  width: 48px;
+  padding: 2px 4px;
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 4px;
+  background: rgba(255,255,255,0.1);
+  color: #ddd;
+  font-size: 12px;
+  text-align: center;
+  -moz-appearance: textfield;
+}
+
+#gate-width-input::-webkit-outer-spin-button,
+#gate-width-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
 }
 
 /* Utility */

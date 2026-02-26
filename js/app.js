@@ -10,7 +10,12 @@ const App = {
   _scaleMarkers: [],      // temp DOM elements for scale point display
   _scaleLine: null,       // temp SVG line overlay
   _slalomStart: null,     // first click for slalom tool
+  _slalomEnd: null,       // second click for slalom tool
+  _gateCenter: null,      // first click for gate tool
+  _previewLine: null,     // SVG element for rubber-band preview line
+  _previewLabel: null,    // distance label element for preview
   _boxSelecting: false,   // box selection state
+  _previousTool: 'regular', // tool to revert to after one-shot select
 
   async init() {
     // Check for shared course in URL
@@ -106,11 +111,6 @@ const App = {
 
     Grid.init(this.map);
 
-    // Initialize new modules
-    Arrows.init(this.map, {
-      onUpdate: () => this._updateInfo(),
-    });
-
     Obstacles.init(this.map, {
       onUpdate: () => this._updateInfo(),
     });
@@ -200,17 +200,11 @@ const App = {
         break;
 
       case 'gate':
-        History.push();
-        this._placeGate(lngLat);
+        this._handleGateClick(lngLat);
         break;
 
       case 'slalom':
         this._handleSlalomClick(lngLat);
-        break;
-
-      case 'arrow':
-        History.push();
-        Arrows.placeArrow(lngLat);
         break;
 
       case 'obstacle':
@@ -225,9 +219,10 @@ const App = {
         break;
 
       case 'select':
-        // Clicking on empty map deselects
+        // Clicking on empty map deselects and reverts to previous tool
         this._deselectCone();
         Selection.clear();
+        this._setActiveTool(this._previousTool);
         break;
 
       case 'drivingline':
@@ -278,8 +273,26 @@ const App = {
     Distance.hideLabel();
   },
 
-  /** Handle mousemove for distance labels */
+  /** Handle mousemove for distance labels and preview lines */
   _handleMouseMove(e) {
+    const lngLat = e.lngLat;
+
+    // Slalom preview line
+    if (this.activeTool === 'slalom' && this._slalomStart) {
+      this._showPreviewLine(this._slalomStart, lngLat);
+      const dist = this._calcDistanceFeet(this._slalomStart, lngLat);
+      if (dist !== null) {
+        this._showPreviewLabel(e.point, `${dist.toFixed(1)} ft`);
+      }
+      return;
+    }
+
+    // Gate preview line
+    if (this.activeTool === 'gate' && this._gateCenter) {
+      this._showPreviewLine(this._gateCenter, lngLat);
+      return;
+    }
+
     if (this.activeTool !== 'select' || !this.selectedCone) return;
     if (this.mode === 'image' && !ImageMap.hasScale()) return;
 
@@ -310,57 +323,284 @@ const App = {
     return closest;
   },
 
-  // ===== Gate Tool =====
+  // ===== Preview Line Helper =====
 
-  /** Place a gate (two cones perpendicular, 20ft apart) */
-  _placeGate(lngLat) {
-    const gateWidth = 20; // feet
-    const halfWidth = gateWidth / 2;
+  /** Show a rubber-band preview line between two lngLat points */
+  _showPreviewLine(from, to) {
+    const p1 = this.map.project(from);
+    const p2 = this.map.project(to);
 
-    let offsetLng, offsetLat;
-    if (this.mode === 'image') {
-      const scale = ImageMap.hasScale() ? ImageMap.getScale() : 1;
-      const offsetPx = halfWidth / scale;
-      offsetLng = offsetPx;
-      offsetLat = 0;
-    } else {
-      // ~3.048m = 10ft. Gate = 20ft = 6.096m
-      // At equator: 1 degree ~ 111,320m
-      const metersPerDegLng = 111320 * Math.cos(lngLat.lat * Math.PI / 180);
-      const metersPerDegLat = 110540;
-      offsetLng = (halfWidth / 3.28084) / metersPerDegLng;
-      offsetLat = 0;
+    if (!this._previewLine) {
+      const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      svg.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;z-index:15;pointer-events:none;';
+      const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+      line.setAttribute('stroke', '#3b82f6');
+      line.setAttribute('stroke-width', '2');
+      line.setAttribute('stroke-dasharray', '6,4');
+      svg.appendChild(line);
+      document.body.appendChild(svg);
+      this._previewLine = svg;
     }
 
-    // Place two cones offset east-west from click point
-    Cones.place('regular', lngLat, [lngLat.lng - offsetLng, lngLat.lat - offsetLat]);
-    Cones.place('regular', lngLat, [lngLat.lng + offsetLng, lngLat.lat + offsetLat]);
+    const line = this._previewLine.querySelector('line');
+    line.setAttribute('x1', p1.x);
+    line.setAttribute('y1', p1.y);
+    line.setAttribute('x2', p2.x);
+    line.setAttribute('y2', p2.y);
+  },
+
+  /** Show a floating label near the cursor for preview */
+  _showPreviewLabel(point, text) {
+    const label = document.getElementById('distance-label');
+    label.textContent = text;
+    label.style.left = (point.x + 15) + 'px';
+    label.style.top = (point.y - 10) + 'px';
+    label.classList.remove('hidden');
+  },
+
+  /** Hide the preview line and label */
+  _hidePreviewLine() {
+    if (this._previewLine) {
+      this._previewLine.remove();
+      this._previewLine = null;
+    }
+    Distance.hideLabel();
+  },
+
+  /** Calculate distance in feet between two lngLat points */
+  _calcDistanceFeet(from, to) {
+    if (this.mode === 'image') {
+      if (!ImageMap.hasScale()) return null;
+      const fromArr = [from.lng !== undefined ? from.lng : from[0], from.lat !== undefined ? from.lat : from[1]];
+      const toArr = [to.lng !== undefined ? to.lng : to[0], to.lat !== undefined ? to.lat : to[1]];
+      return Distance._pixelDistFeet(fromArr, toArr);
+    } else {
+      const lat1 = from.lat !== undefined ? from.lat : from[1];
+      const lng1 = from.lng !== undefined ? from.lng : from[0];
+      const lat2 = to.lat !== undefined ? to.lat : to[1];
+      const lng2 = to.lng !== undefined ? to.lng : to[0];
+      return Distance._haversine(lat1, lng1, lat2, lng2) * 3.28084;
+    }
+  },
+
+  // ===== Gate Tool (Two-Click) =====
+
+  /** Handle gate click — first click sets center, second click sets driving direction */
+  _handleGateClick(lngLat) {
+    if (!this._gateCenter) {
+      this._gateCenter = lngLat;
+      this._showToast('Click to set driving direction through the gate', 'info');
+    } else {
+      const center = this._gateCenter;
+      this._gateCenter = null;
+      this._hidePreviewLine();
+
+      History.push();
+
+      // Calculate angle from center to second click (driving direction)
+      const gateWidth = parseFloat(document.getElementById('gate-width-input').value) || 20;
+      const halfWidth = gateWidth / 2;
+
+      if (this.mode === 'image') {
+        const scale = ImageMap.hasScale() ? ImageMap.getScale() : 1;
+        const offsetPx = halfWidth / scale;
+        // Angle from center to direction click
+        const dx = lngLat.lng - center.lng;
+        const dy = lngLat.lat - center.lat;
+        const angle = Math.atan2(dy, dx);
+        // Perpendicular offsets (±90°)
+        const perpX = Math.cos(angle + Math.PI / 2) * offsetPx;
+        const perpY = Math.sin(angle + Math.PI / 2) * offsetPx;
+        Cones.place('regular', center, [center.lng + perpX, center.lat + perpY]);
+        Cones.place('regular', center, [center.lng - perpX, center.lat - perpY]);
+      } else {
+        // Map mode: compute offset in degrees
+        const metersPerDegLng = 111320 * Math.cos(center.lat * Math.PI / 180);
+        const metersPerDegLat = 110540;
+        const halfMeters = halfWidth / 3.28084;
+
+        // Angle in degrees (lng/lat space, adjusted for projection)
+        const dx = (lngLat.lng - center.lng) * metersPerDegLng;
+        const dy = (lngLat.lat - center.lat) * metersPerDegLat;
+        const angle = Math.atan2(dy, dx);
+
+        // Perpendicular offsets
+        const perpAngle = angle + Math.PI / 2;
+        const offsetLng = Math.cos(perpAngle) * halfMeters / metersPerDegLng;
+        const offsetLat = Math.sin(perpAngle) * halfMeters / metersPerDegLat;
+
+        Cones.place('regular', center, [center.lng + offsetLng, center.lat + offsetLat]);
+        Cones.place('regular', center, [center.lng - offsetLng, center.lat - offsetLat]);
+      }
+    }
   },
 
   // ===== Slalom Tool =====
 
-  /** Handle slalom click (two-click placement) */
+  /** Handle slalom click (two-click with dialog) */
   _handleSlalomClick(lngLat) {
+    // Ignore clicks while dialog is open
+    if (!document.getElementById('slalom-dialog').classList.contains('hidden')) return;
+
     if (!this._slalomStart) {
       this._slalomStart = lngLat;
       this._showToast('Click the end position for the slalom', 'info');
     } else {
-      const start = this._slalomStart;
-      this._slalomStart = null;
+      this._slalomEnd = lngLat;
+      this._hidePreviewLine();
+      this._showSlalomDialog();
+    }
+  },
 
-      const countStr = prompt('Number of cones in slalom:', '5');
-      const count = parseInt(countStr);
-      if (!count || count < 2) return;
+  /** Show the slalom configuration dialog */
+  _showSlalomDialog() {
+    const start = this._slalomStart;
+    const end = this._slalomEnd;
+    const clickedFeet = this._calcDistanceFeet(start, end);
+    const hasDist = clickedFeet !== null && clickedFeet > 0;
 
+    // Direction unit vector in coordinate space (fixed by the two clicks)
+    const dLng = end.lng - start.lng;
+    const dLat = end.lat - start.lat;
+    const lineLenCoord = Math.sqrt(dLng * dLng + dLat * dLat);
+    const uLng = lineLenCoord > 0 ? dLng / lineLenCoord : 1;
+    const uLat = lineLenCoord > 0 ? dLat / lineLenCoord : 0;
+    // Coordinate units per foot along this direction
+    const coordPerFoot = hasDist ? lineLenCoord / clickedFeet : 0;
+
+    const dialog = document.getElementById('slalom-dialog');
+    const lengthInput = document.getElementById('slalom-length-input');
+    const spacingInput = document.getElementById('slalom-spacing-input');
+    const countInput = document.getElementById('slalom-count-input');
+    const confirmBtn = document.getElementById('slalom-confirm');
+    const cancelBtn = document.getElementById('slalom-cancel');
+
+    lengthInput.value = hasDist ? clickedFeet.toFixed(1) : '';
+    spacingInput.value = '';
+    countInput.value = '5';
+
+    // Track which input was last edited to determine placement behavior
+    let lastEdited = 'count'; // 'length', 'spacing', or 'count'
+
+    const getLength = () => parseFloat(lengthInput.value) || 0;
+    const getSpacing = () => parseFloat(spacingInput.value) || 0;
+    const getCount = () => parseInt(countInput.value) || 0;
+
+    const updateFromLength = () => {
+      lastEdited = 'length';
+      const len = getLength();
+      const spacing = getSpacing();
+      if (len > 0 && spacing > 0) {
+        countInput.value = Math.floor(len / spacing) + 1;
+      } else {
+        const count = getCount();
+        if (count >= 2 && len > 0) {
+          spacingInput.value = (len / (count - 1)).toFixed(1);
+        }
+      }
+      this._updateSlalomPreview();
+    };
+
+    const updateFromSpacing = () => {
+      lastEdited = 'spacing';
+      const spacing = getSpacing();
+      const len = getLength();
+      if (spacing > 0 && len > 0) {
+        countInput.value = Math.floor(len / spacing) + 1;
+      }
+      this._updateSlalomPreview();
+    };
+
+    const updateFromCount = () => {
+      lastEdited = 'count';
+      const count = getCount();
+      const len = getLength();
+      if (count >= 2 && len > 0) {
+        spacingInput.value = (len / (count - 1)).toFixed(1);
+      }
+      this._updateSlalomPreview();
+    };
+
+    // Initial calc from default count
+    updateFromCount();
+
+    dialog.classList.remove('hidden');
+    countInput.focus();
+
+    const cleanup = () => {
+      dialog.classList.add('hidden');
+      lengthInput.removeEventListener('input', updateFromLength);
+      spacingInput.removeEventListener('input', updateFromSpacing);
+      countInput.removeEventListener('input', updateFromCount);
+      confirmBtn.removeEventListener('click', onConfirm);
+      cancelBtn.removeEventListener('click', onCancel);
+      lengthInput.removeEventListener('keydown', onKey);
+      spacingInput.removeEventListener('keydown', onKey);
+      countInput.removeEventListener('keydown', onKey);
+    };
+
+    const onConfirm = () => {
+      const count = getCount();
+      const spacing = getSpacing();
+      const len = getLength();
+      if (!count || count < 2) {
+        countInput.focus();
+        return;
+      }
+      cleanup();
       History.push();
 
-      // Place cones evenly between start and end
+      // Use spacing for exact placement; compute step in coord space
+      const stepCoord = spacing > 0 && coordPerFoot > 0
+        ? spacing * coordPerFoot
+        : (len > 0 && coordPerFoot > 0 && count > 1)
+          ? (len / (count - 1)) * coordPerFoot
+          : (count > 1 ? lineLenCoord / (count - 1) : 0);
+
       for (let i = 0; i < count; i++) {
-        const t = i / (count - 1);
-        const lng = start.lng + (lngLat.lng - start.lng) * t;
-        const lat = start.lat + (lngLat.lat - start.lat) * t;
+        const lng = start.lng + uLng * stepCoord * i;
+        const lat = start.lat + uLat * stepCoord * i;
         Cones.place('regular', { lng, lat }, [lng, lat]);
       }
+
+      this._slalomStart = null;
+      this._slalomEnd = null;
+    };
+
+    const onCancel = () => {
+      cleanup();
+      this._slalomStart = null;
+      this._slalomEnd = null;
+    };
+
+    const onKey = (e) => {
+      if (e.key === 'Enter') onConfirm();
+      if (e.key === 'Escape') onCancel();
+    };
+
+    lengthInput.addEventListener('input', updateFromLength);
+    spacingInput.addEventListener('input', updateFromSpacing);
+    countInput.addEventListener('input', updateFromCount);
+    confirmBtn.addEventListener('click', onConfirm);
+    cancelBtn.addEventListener('click', onCancel);
+    lengthInput.addEventListener('keydown', onKey);
+    spacingInput.addEventListener('keydown', onKey);
+    countInput.addEventListener('keydown', onKey);
+  },
+
+  /** Update the slalom preview text in the dialog */
+  _updateSlalomPreview() {
+    const countInput = document.getElementById('slalom-count-input');
+    const spacingInput = document.getElementById('slalom-spacing-input');
+    const previewText = document.getElementById('slalom-preview-text');
+    const count = parseInt(countInput.value) || 0;
+    const spacing = parseFloat(spacingInput.value) || 0;
+    if (count >= 2 && spacing > 0) {
+      previewText.textContent = `Will place ${count} cones, ${spacing.toFixed(1)} ft apart`;
+    } else if (count >= 2) {
+      previewText.textContent = `Will place ${count} cones`;
+    } else {
+      previewText.textContent = 'Will place -- cones, -- ft apart';
     }
   },
 
@@ -372,11 +612,8 @@ const App = {
 
     mapContainer.addEventListener('mousedown', (e) => {
       if (this.activeTool !== 'select') return;
-      if (e.target.closest('.cone-marker, .waypoint-marker, .note-marker, .arrow-marker, .obstacle-marker, .worker-marker, .measurement-endpoint, .measurement-label')) return;
+      if (e.target.closest('.cone-marker, .waypoint-marker, .note-marker, .obstacle-marker, .worker-marker, .measurement-endpoint, .measurement-label')) return;
       if (e.button !== 0) return;
-
-      // Only start box select if shift is held, to avoid conflicting with pan
-      if (!e.shiftKey) return;
 
       this._boxSelecting = true;
       boxStartX = e.clientX;
@@ -409,11 +646,6 @@ const App = {
       DrivingLine.clear();
     });
 
-    document.getElementById('btn-toggle-measures').addEventListener('click', () => {
-      const visible = Measurements.toggleVisibility();
-      document.getElementById('btn-toggle-measures').classList.toggle('active', visible);
-    });
-
     // Undo/Redo buttons
     document.getElementById('btn-undo').addEventListener('click', () => History.undo());
     document.getElementById('btn-redo').addEventListener('click', () => History.redo());
@@ -438,6 +670,29 @@ const App = {
     // Cancel slalom start if switching away
     if (this.activeTool === 'slalom' && tool !== 'slalom') {
       this._slalomStart = null;
+      this._hidePreviewLine();
+    }
+
+    // Cancel gate if switching away
+    if (this.activeTool === 'gate' && tool !== 'gate') {
+      this._gateCenter = null;
+      this._hidePreviewLine();
+    }
+
+    // Re-enable map dragging when leaving select mode
+    if (this.activeTool === 'select' && tool !== 'select') {
+      if (this.mode === 'map' && this.map.dragPan) {
+        this.map.dragPan.enable();
+      }
+    }
+
+    // Store previous tool before switching to select (for one-shot revert)
+    if (tool === 'select' && this.activeTool !== 'select') {
+      this._previousTool = this.activeTool;
+      // Disable map dragging so plain drag starts box select
+      if (this.mode === 'map' && this.map.dragPan) {
+        this.map.dragPan.disable();
+      }
     }
 
     this.activeTool = tool;
@@ -644,29 +899,6 @@ const App = {
       ctx.restore();
     }
 
-    // Draw arrows
-    if (Layers.isVisible('arrows')) {
-      for (const arrow of Arrows.arrows) {
-        const pos = this.mode === 'image'
-          ? { x: arrow.lngLat[0], y: arrow.lngLat[1] }
-          : this.map.project(arrow.lngLat);
-        const ax = pos.x * dpr;
-        const ay = pos.y * dpr;
-
-        ctx.save();
-        ctx.translate(ax, ay);
-        ctx.rotate((arrow.rotation || 0) * Math.PI / 180);
-        ctx.beginPath();
-        ctx.moveTo(10 * dpr, 0);
-        ctx.lineTo(-6 * dpr, -7 * dpr);
-        ctx.lineTo(-6 * dpr, 7 * dpr);
-        ctx.closePath();
-        ctx.fillStyle = '#f97316';
-        ctx.fill();
-        ctx.restore();
-      }
-    }
-
     // Draw obstacles
     if (Layers.isVisible('obstacles')) {
       for (const obs of Obstacles.obstacles) {
@@ -867,18 +1099,8 @@ const App = {
     ctx.restore();
   },
 
-  /** Set up save/export/import buttons */
+  /** Set up export/import buttons */
   _setupStorage() {
-    // Save
-    document.getElementById('btn-save').addEventListener('click', () => {
-      const name = prompt('Course name:');
-      if (!name) return;
-
-      const data = this._serializeFull();
-      Storage.save(name, data);
-      this._refreshSavedList();
-    });
-
     // Export
     document.getElementById('btn-export').addEventListener('click', () => {
       const data = this._serializeFull();
@@ -926,8 +1148,6 @@ const App = {
       this.mode === 'image',
       this.imageFileName
     );
-    // Add new element types
-    data.arrows = Arrows.getData();
     data.obstacles = Obstacles.getData();
     data.workers = Workers.getData();
     return data;
@@ -939,7 +1159,6 @@ const App = {
     if (data.drivingLine) DrivingLine.loadData(data.drivingLine);
     if (data.measurements) Measurements.loadData(data.measurements);
     if (data.notes) Notes.loadData(data.notes);
-    if (data.arrows) Arrows.loadData(data.arrows);
     if (data.obstacles) Obstacles.loadData(data.obstacles);
     if (data.workers) Workers.loadData(data.workers);
     if (data.mapCenter && data.mapZoom && this.mode === 'map') {
@@ -1030,13 +1249,6 @@ const App = {
         return;
       }
 
-      // Ctrl+S — Save
-      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
-        e.preventDefault();
-        document.getElementById('btn-save').click();
-        return;
-      }
-
       // Ctrl+A — Select all
       if ((e.ctrlKey || e.metaKey) && e.key === 'a') {
         e.preventDefault();
@@ -1061,6 +1273,8 @@ const App = {
         this._deselectCone();
         Selection.clear();
         this._slalomStart = null;
+        this._gateCenter = null;
+        this._hidePreviewLine();
         if (this.activeTool === 'measure') {
           Measurements.cancelPending();
         }

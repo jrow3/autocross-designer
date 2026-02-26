@@ -3,7 +3,6 @@
 const Workers = {
   stations: [],
   _nextId: 1,
-  _nextNumber: 1,
   _map: null,
   _onUpdate: null,
 
@@ -15,7 +14,7 @@ const Workers = {
   /** Place a worker station at the given lngLat */
   placeStation(lngLat) {
     const id = this._nextId++;
-    const number = this._nextNumber++;
+    const number = this.stations.length + 1;
     const lng = lngLat.lng !== undefined ? lngLat.lng : lngLat[0];
     const lat = lngLat.lat !== undefined ? lngLat.lat : lngLat[1];
 
@@ -30,9 +29,30 @@ const Workers = {
     const station = { id, number, lngLat: [lng, lat], marker };
     this.stations.push(station);
 
+    // Group drag: start tracking when drag begins on a multi-selected worker
+    marker.on('dragstart', () => {
+      if (typeof Selection !== 'undefined' && Selection.isSelected('worker', station.id) && Selection.count() > 1) {
+        Selection.startGroupDrag('worker', station.id);
+      }
+    });
+
+    // Group drag: move all selected items during drag
+    marker.on('drag', () => {
+      if (typeof Selection !== 'undefined' && Selection.isSelected('worker', station.id) && Selection.count() > 1) {
+        const pos = marker.getLngLat();
+        Selection.updateGroupDrag(pos);
+      }
+    });
+
     marker.on('dragend', () => {
       const pos = marker.getLngLat();
       station.lngLat = [pos.lng, pos.lat];
+
+      // If part of a group drag, finalize all positions
+      if (typeof Selection !== 'undefined' && Selection.isSelected('worker', station.id) && Selection.count() > 1) {
+        Selection.endGroupDrag();
+      }
+
       if (this._onUpdate) this._onUpdate();
     });
 
@@ -52,7 +72,17 @@ const Workers = {
     if (idx === -1) return;
     this.stations[idx].marker.remove();
     this.stations.splice(idx, 1);
+    this._renumber();
     if (this._onUpdate) this._onUpdate();
+  },
+
+  /** Renumber all stations sequentially after a delete */
+  _renumber() {
+    this.stations.forEach((station, i) => {
+      station.number = i + 1;
+      const span = station.marker.getElement().querySelector('.worker-number');
+      if (span) span.textContent = station.number;
+    });
   },
 
   /** Clear all stations */
@@ -72,23 +102,44 @@ const Workers = {
   /** Load stations from saved data */
   loadData(data) {
     this.clearAll();
-    let maxNum = 0;
-    data.forEach(d => {
+    data.forEach((d, i) => {
       const id = this._nextId++;
+      const number = i + 1;
       const el = document.createElement('div');
       el.className = 'worker-marker';
-      el.innerHTML = `<span class="worker-number">${d.number}</span>`;
+      el.innerHTML = `<span class="worker-number">${number}</span>`;
 
       const marker = window.createMarker({ element: el, draggable: true })
         .setLngLat(d.lngLat)
         .addTo(this._map);
 
-      const station = { id, number: d.number, lngLat: d.lngLat.slice(), marker };
+      const station = { id, number, lngLat: d.lngLat.slice(), marker };
       this.stations.push(station);
+
+      // Group drag: start tracking when drag begins on a multi-selected worker
+      marker.on('dragstart', () => {
+        if (typeof Selection !== 'undefined' && Selection.isSelected('worker', station.id) && Selection.count() > 1) {
+          Selection.startGroupDrag('worker', station.id);
+        }
+      });
+
+      // Group drag: move all selected items during drag
+      marker.on('drag', () => {
+        if (typeof Selection !== 'undefined' && Selection.isSelected('worker', station.id) && Selection.count() > 1) {
+          const pos = marker.getLngLat();
+          Selection.updateGroupDrag(pos);
+        }
+      });
 
       marker.on('dragend', () => {
         const pos = marker.getLngLat();
         station.lngLat = [pos.lng, pos.lat];
+
+        // If part of a group drag, finalize all positions
+        if (typeof Selection !== 'undefined' && Selection.isSelected('worker', station.id) && Selection.count() > 1) {
+          Selection.endGroupDrag();
+        }
+
         if (this._onUpdate) this._onUpdate();
       });
 
@@ -97,10 +148,7 @@ const Workers = {
         e.stopPropagation();
         this.removeStation(id);
       });
-
-      if (d.number > maxNum) maxNum = d.number;
     });
-    this._nextNumber = maxNum + 1;
   },
 
   /** Render worker stations in sidebar */
