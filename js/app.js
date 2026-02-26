@@ -137,6 +137,9 @@ const App = {
     // Wire up grid controls
     this._setupGrid();
 
+    // Wire up help dialog
+    this._setupHelp();
+
     // Wire up print
     this._setupPrint();
 
@@ -650,8 +653,6 @@ const App = {
     document.getElementById('btn-undo').addEventListener('click', () => History.undo());
     document.getElementById('btn-redo').addEventListener('click', () => History.redo());
 
-    // Share button
-    document.getElementById('btn-share').addEventListener('click', () => Sharing.share());
   },
 
   /** Set the active tool and update button styles */
@@ -779,6 +780,21 @@ const App = {
     toggle.addEventListener('click', () => {
       sidebar.classList.toggle('collapsed');
       toggle.textContent = sidebar.classList.contains('collapsed') ? '\u25B6' : '\u25C4';
+    });
+  },
+
+  /** Set up help dialog */
+  _setupHelp() {
+    const dialog = document.getElementById('help-dialog');
+    const closeBtn = document.getElementById('help-close');
+    document.getElementById('btn-help').addEventListener('click', () => {
+      dialog.classList.remove('hidden');
+    });
+    closeBtn.addEventListener('click', () => {
+      dialog.classList.add('hidden');
+    });
+    dialog.addEventListener('click', (e) => {
+      if (e.target === dialog) dialog.classList.add('hidden');
     });
   },
 

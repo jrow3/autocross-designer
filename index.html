@@ -157,6 +157,10 @@
     </div>
     <div class="toolbar-section">
       <div class="toolbar-label">Course</div>
+      <button class="tool-btn" id="btn-help" title="How to Use">
+        <span class="tool-icon">&#63;</span>
+        Help
+      </button>
       <button class="tool-btn" id="btn-print" title="Print to Image">
         <span class="tool-icon">&#128438;</span>
         Print
@@ -168,10 +172,6 @@
       <button class="tool-btn" id="btn-import" title="Import JSON">
         <span class="tool-icon">&#128229;</span>
         Import
-      </button>
-      <button class="tool-btn" id="btn-share" title="Share via URL">
-        <span class="tool-icon">&#128279;</span>
-        Share
       </button>
       <input type="file" id="import-file" accept=".json" style="display:none">
     </div>
@@ -279,6 +279,60 @@
       <div class="print-dialog-buttons">
         <button id="print-confirm" class="print-btn-confirm">Download Image</button>
         <button id="print-cancel" class="print-btn-cancel">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Help Dialog -->
+  <div id="help-dialog" class="hidden">
+    <div class="help-dialog-content">
+      <div class="help-dialog-header">
+        <h3>How to Use</h3>
+        <button id="help-close" class="help-close-btn">&times;</button>
+      </div>
+      <div class="help-dialog-body">
+        <h4>Place Cones</h4>
+        <p>Click a cone type, then click the map to place. <b>Regular</b> (orange), <b>Pointer</b> (green arrow that auto-rotates toward the nearest regular cone), <b>Start</b> (green), <b>Finish</b> (checkered).</p>
+        <p><b>Gate</b> — click to set the center, click again to set the driving direction. Two cones are placed perpendicular to that direction at the specified width.</p>
+        <p><b>Slalom</b> — click the start point, then the end point. A dialog lets you set the number of cones and spacing.</p>
+
+        <h4>Place Elements</h4>
+        <p><b>Trailer / Staging Grid</b> — click to place. Drag to move. Hover to reveal rotate and resize handles.</p>
+        <p><b>Worker</b> — numbered worker stations. Click sidebar entries to fly to them on the map.</p>
+        <p><b>Obstacle</b> — choose a type from the dropdown (Hazard, Light Pole, Drain, etc.) and click to place.</p>
+
+        <h4>Tools</h4>
+        <p><b>Select</b> — drag a box to select multiple items. Selected items can be dragged together. Click empty space to deselect. Right-click any item to delete it.</p>
+        <p><b>Line</b> — click to add waypoints for a driving line. <b>Clear Line</b> removes it.</p>
+        <p><b>Measure</b> — click two points (or cones) to measure distance. Measurements persist on the map.</p>
+        <p><b>Note</b> — click to place a numbered note. Edit text in the sidebar.</p>
+        <p><b>Undo / Redo</b> — also available via <kbd>Ctrl+Z</kbd> / <kbd>Ctrl+Y</kbd>.</p>
+
+        <h4>View</h4>
+        <p><b>Map Opacity</b> — fade the satellite imagery to see cones more clearly.</p>
+        <p><b>Grid</b> — toggle a 10 ft grid overlay. Adjust rotation with the slider or number input. Toggle light/dark grid lines.</p>
+
+        <h4>Course</h4>
+        <p><b>Print</b> — download the current view as a PNG image.</p>
+        <p><b>Export / Import</b> — save or load courses as JSON files.</p>
+
+        <h4>Layers &amp; Sidebar</h4>
+        <p>The right sidebar shows course info, layer visibility toggles (cones, measurements, notes, obstacles, workers, driving line), notes, worker stations, saved venues, and saved courses.</p>
+        <p><b>Save Venue</b> — saves the current obstacles as a reusable venue layout.</p>
+
+        <h4>Keyboard Shortcuts</h4>
+        <table class="help-shortcuts">
+          <tr><td><kbd>1</kbd>–<kbd>9</kbd></td><td>Quick tool select</td></tr>
+          <tr><td><kbd>Ctrl+Z</kbd></td><td>Undo</td></tr>
+          <tr><td><kbd>Ctrl+Y</kbd></td><td>Redo</td></tr>
+          <tr><td><kbd>Ctrl+A</kbd></td><td>Select all</td></tr>
+          <tr><td><kbd>Delete</kbd></td><td>Delete selected items</td></tr>
+          <tr><td><kbd>Escape</kbd></td><td>Deselect / cancel tool</td></tr>
+          <tr><td>Right-click</td><td>Delete any item</td></tr>
+        </table>
+
+        <h4>Image Mode</h4>
+        <p>Load an image instead of a live map. Use <b>Set Scale</b> to calibrate by clicking two points and entering the real-world distance between them. All measurement tools then work in feet.</p>
       </div>
     </div>
   </div>
