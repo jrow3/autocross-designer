@@ -112,15 +112,25 @@ const Cones = {
         if (nearest) {
           const dx = lngLat.lng - nearest.lngLat[0];
           const dy = lngLat.lat - nearest.lngLat[1];
-          const dist = Math.sqrt(dx * dx + dy * dy);
-          if (dist > 0) {
-            // Offset ~5ft from nearest cone in click direction
-            let snapOffset = POINTER_SNAP_OFFSET_DEG;
-            if (App.mode === 'image') {
-              snapOffset = ImageMap.hasScale() ? (5 / ImageMap.getScale()) : 15;
+
+          if (App.mode === 'image') {
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            if (dist > 0) {
+              const snapOffset = ImageMap.hasScale() ? (5 / ImageMap.getScale()) : 15;
+              placeLng = nearest.lngLat[0] + (dx / dist) * snapOffset;
+              placeLat = nearest.lngLat[1] + (dy / dist) * snapOffset;
             }
-            placeLng = nearest.lngLat[0] + (dx / dist) * snapOffset;
-            placeLat = nearest.lngLat[1] + (dy / dist) * snapOffset;
+          } else {
+            // Correct for latitude projection so pointers orbit in a true circle
+            const cosLat = Math.cos(nearest.lngLat[1] * Math.PI / 180);
+            const dxMeters = dx * cosLat;
+            const dist = Math.sqrt(dxMeters * dxMeters + dy * dy);
+            if (dist > 0) {
+              const snapOffset = POINTER_SNAP_OFFSET_DEG;
+              // Apply offset in corrected space, then convert back to degrees
+              placeLng = nearest.lngLat[0] + (dxMeters / dist) * snapOffset / cosLat;
+              placeLat = nearest.lngLat[1] + (dy / dist) * snapOffset;
+            }
           }
         }
       }
