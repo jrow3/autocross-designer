@@ -104,6 +104,7 @@ const App = {
     });
 
     Measurements.init(this.map);
+    CourseOutline.init(this.map);
 
     Notes.init(this.map, {
       onUpdate: () => this._updateInfo(),
@@ -243,6 +244,10 @@ const App = {
         Measurements.handleClick(lngLat, e.point);
         break;
 
+      case 'courseoutline':
+        CourseOutline.handleClick(lngLat);
+        break;
+
       case 'note':
         History.push();
         Notes.addNote(lngLat);
@@ -299,6 +304,24 @@ const App = {
     // Gate preview line
     if (this.activeTool === 'gate' && this._gateCenter) {
       this._showPreviewLine(this._gateCenter, lngLat);
+      return;
+    }
+
+    // Measure tool preview line + real-time distance
+    if (this.activeTool === 'measure' && Measurements._pendingPoint) {
+      const from = { lng: Measurements._pendingPoint[0], lat: Measurements._pendingPoint[1] };
+      this._showPreviewLine(from, lngLat);
+      const dist = this._calcDistanceFeet(from, lngLat);
+      if (dist !== null) {
+        this._showPreviewLabel(e.point, `${dist.toFixed(1)} ft`);
+      }
+      return;
+    }
+
+    // Course outline preview line
+    if (this.activeTool === 'courseoutline' && CourseOutline._pendingPoint) {
+      const from = { lng: CourseOutline._pendingPoint[0], lat: CourseOutline._pendingPoint[1] };
+      this._showPreviewLine(from, lngLat);
       return;
     }
 
@@ -621,7 +644,7 @@ const App = {
 
     mapContainer.addEventListener('mousedown', (e) => {
       if (this.activeTool !== 'select') return;
-      if (e.target.closest('.cone-marker, .waypoint-marker, .note-marker, .obstacle-marker, .worker-marker, .measurement-endpoint, .measurement-label')) return;
+      if (e.target.closest('.cone-marker, .waypoint-marker, .note-marker, .obstacle-marker, .worker-marker, .measurement-endpoint, .measurement-label, .outline-endpoint, .outline-control')) return;
       if (e.button !== 0) return;
 
       this._boxSelecting = true;
@@ -672,6 +695,13 @@ const App = {
     // Cancel pending measurement if switching away from measure tool
     if (this.activeTool === 'measure' && tool !== 'measure') {
       Measurements.cancelPending();
+      this._hidePreviewLine();
+    }
+
+    // Cancel pending outline if switching away
+    if (this.activeTool === 'courseoutline' && tool !== 'courseoutline') {
+      CourseOutline.cancelPending();
+      this._hidePreviewLine();
     }
 
     // Cancel slalom start if switching away
@@ -1022,6 +1052,30 @@ const App = {
       }
     }
 
+    // Draw course outline segments
+    if (Layers.isVisible('courseOutline')) {
+      for (const seg of CourseOutline.segments) {
+        const p1pos = this.mode === 'image'
+          ? { x: seg.points[0][0], y: seg.points[0][1] }
+          : this.map.project(seg.points[0]);
+        const p2pos = this.mode === 'image'
+          ? { x: seg.points[1][0], y: seg.points[1][1] }
+          : this.map.project(seg.points[1]);
+        const cppos = this.mode === 'image'
+          ? { x: seg.controlPoint[0], y: seg.controlPoint[1] }
+          : this.map.project(seg.controlPoint);
+
+        ctx.save();
+        ctx.beginPath();
+        ctx.moveTo(p1pos.x * dpr, p1pos.y * dpr);
+        ctx.quadraticCurveTo(cppos.x * dpr, cppos.y * dpr, p2pos.x * dpr, p2pos.y * dpr);
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 3 * dpr;
+        ctx.stroke();
+        ctx.restore();
+      }
+    }
+
     // Draw note markers
     if (Layers.isVisible('notes')) {
       for (const n of Notes.notes) {
@@ -1172,6 +1226,7 @@ const App = {
     );
     data.obstacles = Obstacles.getData();
     data.workers = Workers.getData();
+    data.courseOutline = CourseOutline.getData();
     return data;
   },
 
@@ -1183,6 +1238,7 @@ const App = {
     if (data.notes) Notes.loadData(data.notes);
     if (data.obstacles) Obstacles.loadData(data.obstacles);
     if (data.workers) Workers.loadData(data.workers);
+    if (data.courseOutline) CourseOutline.loadData(data.courseOutline);
     if (data.mapCenter && data.mapZoom && this.mode === 'map') {
       MapModule.flyTo(data.mapCenter, data.mapZoom);
     }
@@ -1299,6 +1355,9 @@ const App = {
         this._hidePreviewLine();
         if (this.activeTool === 'measure') {
           Measurements.cancelPending();
+        }
+        if (this.activeTool === 'courseoutline') {
+          CourseOutline.cancelPending();
         }
         this._setActiveTool('select');
         return;

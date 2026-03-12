@@ -168,9 +168,13 @@ const Cones = {
 
     // Group drag: move all selected items during drag
     marker.on('drag', () => {
+      const pos = marker.getLngLat();
       if (typeof Selection !== 'undefined' && Selection.isSelected('cone', cone.id) && Selection.count() > 1) {
-        const pos = marker.getLngLat();
         Selection.updateGroupDrag(pos);
+      }
+      // Live-update any measurements anchored to this cone
+      if (typeof Measurements !== 'undefined') {
+        Measurements.updateConePosition(cone.id, [pos.lng, pos.lat]);
       }
     });
 

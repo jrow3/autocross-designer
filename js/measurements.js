@@ -8,6 +8,7 @@ const Measurements = {
   _pendingPoint: null,  // first click lngLat waiting for second
   _pendingMarker: null,
   _pendingConeId: null, // cone id if first click snapped to a cone
+  _dragging: false,     // true while an endpoint is being dragged
 
   init(map) {
     this._map = map;
@@ -16,6 +17,9 @@ const Measurements = {
 
   /** Handle a click while measure tool is active. screenPoint for cone snapping. */
   handleClick(lngLat, screenPoint) {
+    // Ignore clicks that result from finishing an endpoint drag
+    if (this._dragging) return;
+
     let point = [lngLat.lng, lngLat.lat];
     let coneId = null;
 
@@ -55,6 +59,9 @@ const Measurements = {
       this._pendingPoint = null;
       this._pendingConeId = null;
 
+      // Hide the live preview line/label
+      App._hidePreviewLine();
+
       this._createMeasurement(p1, p2, coneId1, coneId2);
     }
   },
@@ -86,36 +93,7 @@ const Measurements = {
       }
 
       if (changed) {
-        // Update label text
-        m.labelEl.textContent = this._computeDistanceLabel(m.points[0], m.points[1]);
-
-        // Update line geometry
-        if (App.mode === 'image') {
-          const line = m.svgEl ? m.svgEl.querySelector('line') : null;
-          if (line) {
-            line.setAttribute('x1', m.points[0][0]);
-            line.setAttribute('y1', m.points[0][1]);
-            line.setAttribute('x2', m.points[1][0]);
-            line.setAttribute('y2', m.points[1][1]);
-          }
-          // Update label position
-          const midX = (m.points[0][0] + m.points[1][0]) / 2;
-          const midY = (m.points[0][1] + m.points[1][1]) / 2;
-          m.labelEl.style.left = midX + 'px';
-          m.labelEl.style.top = midY + 'px';
-        } else {
-          // Map mode: reposition SVG line and label
-          const line = m.svgEl ? m.svgEl.querySelector('line') : null;
-          if (line) {
-            const sp1 = this._map.project(m.points[0]);
-            const sp2 = this._map.project(m.points[1]);
-            line.setAttribute('x1', sp1.x);
-            line.setAttribute('y1', sp1.y);
-            line.setAttribute('x2', sp2.x);
-            line.setAttribute('y2', sp2.y);
-          }
-          this._positionLabel(m.labelEl, m.points[0], m.points[1]);
-        }
+        this._updateMeasurementVisuals(m);
       }
     }
   },
@@ -132,9 +110,9 @@ const Measurements = {
   _createMeasurement(p1, p2, coneId1, coneId2) {
     const id = this._nextId++;
 
-    // Create endpoint markers
-    const m1 = this._createEndpointMarker(p1, id);
-    const m2 = this._createEndpointMarker(p2, id);
+    // Create endpoint markers (draggable)
+    const m1 = this._createEndpointMarker(p1, id, 0);
+    const m2 = this._createEndpointMarker(p2, id, 1);
 
     // Create label
     const labelEl = document.createElement('div');
@@ -229,7 +207,7 @@ const Measurements = {
   },
 
   /** Create an endpoint marker dot */
-  _createEndpointMarker(point, measureId) {
+  _createEndpointMarker(point, measureId, endpointIndex) {
     const el = document.createElement('div');
     el.className = 'measurement-endpoint';
 
@@ -241,11 +219,62 @@ const Measurements = {
       });
     }
 
-    const marker = window.createMarker({ element: el, draggable: false })
+    const draggable = measureId !== undefined;
+    const marker = window.createMarker({ element: el, draggable })
       .setLngLat(point)
       .addTo(this._map);
 
+    if (draggable) {
+      marker.on('dragstart', () => {
+        this._dragging = true;
+      });
+      marker.on('drag', () => {
+        const m = this.measurements.find(m => m.id === measureId);
+        if (!m) return;
+        const pos = marker.getLngLat();
+        m.points[endpointIndex] = [pos.lng, pos.lat];
+        // Detach from cone since it's been manually moved
+        m.coneIds[endpointIndex] = null;
+        this._updateMeasurementVisuals(m);
+      });
+      marker.on('dragend', () => {
+        // Delay clearing so the subsequent click event is still suppressed
+        setTimeout(() => { this._dragging = false; }, 50);
+      });
+    }
+
     return marker;
+  },
+
+  /** Update line geometry and label for a measurement */
+  _updateMeasurementVisuals(m) {
+    // Update label text
+    m.labelEl.textContent = this._computeDistanceLabel(m.points[0], m.points[1]);
+
+    if (App.mode === 'image') {
+      const line = m.svgEl ? m.svgEl.querySelector('line') : null;
+      if (line) {
+        line.setAttribute('x1', m.points[0][0]);
+        line.setAttribute('y1', m.points[0][1]);
+        line.setAttribute('x2', m.points[1][0]);
+        line.setAttribute('y2', m.points[1][1]);
+      }
+      const midX = (m.points[0][0] + m.points[1][0]) / 2;
+      const midY = (m.points[0][1] + m.points[1][1]) / 2;
+      m.labelEl.style.left = midX + 'px';
+      m.labelEl.style.top = midY + 'px';
+    } else {
+      const line = m.svgEl ? m.svgEl.querySelector('line') : null;
+      if (line) {
+        const sp1 = this._map.project(m.points[0]);
+        const sp2 = this._map.project(m.points[1]);
+        line.setAttribute('x1', sp1.x);
+        line.setAttribute('y1', sp1.y);
+        line.setAttribute('x2', sp2.x);
+        line.setAttribute('y2', sp2.y);
+      }
+      this._positionLabel(m.labelEl, m.points[0], m.points[1]);
+    }
   },
 
   /** Compute distance label string between two points */

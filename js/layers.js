@@ -11,6 +11,7 @@ const Layers = {
       drivingLine: { label: 'Driving Line', visible: true },
       measurements:{ label: 'Measurements', visible: true },
       notes:       { label: 'Notes',        visible: true },
+      courseOutline:{ label: 'Course Outline', visible: true },
       grid:        { label: 'Grid',         visible: true },
     };
 
@@ -88,6 +89,18 @@ const Layers = {
           if (m.labelEl) m.labelEl.style.display = display;
           if (m.svgEl) m.svgEl.style.display = display;
         });
+        break;
+      case 'courseOutline':
+        if (typeof CourseOutline !== 'undefined') {
+          const display = visible ? '' : 'none';
+          CourseOutline.segments.forEach(seg => {
+            seg.markers.forEach(mk => {
+              mk.getElement().style.display = display;
+              if (mk._container) mk._container.style.display = display;
+            });
+            if (seg.svgEl) seg.svgEl.style.display = display;
+          });
+        }
         break;
       case 'notes':
         Notes.notes.forEach(n => {

@@ -1,9 +1,6 @@
 // map.js — Mapbox setup, satellite view, location search
 
-// ====================================================
-// PASTE YOUR MAPBOX ACCESS TOKEN BELOW
-// ====================================================
-const MAPBOX_TOKEN = 'REDACTED_MAPBOX_TOKEN';
+// Token loaded from js/config.js (not committed to git)
 
 const MapModule = {
   map: null,
@@ -14,7 +11,7 @@ const MapModule = {
 
   /** Initialize the Mapbox map */
   init() {
-    mapboxgl.accessToken = MAPBOX_TOKEN;
+    mapboxgl.accessToken = CONFIG.MAPBOX_TOKEN;
 
     this.map = new mapboxgl.Map({
       container: 'map',
