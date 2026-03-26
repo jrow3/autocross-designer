@@ -56,6 +56,16 @@ const App = {
 
     this.map.on('load', () => {
       this._initModules();
+
+      // Scale cone markers with zoom level
+      const BASE_ZOOM = 17;
+      const updateMarkerScale = () => {
+        const zoom = this.map.getZoom();
+        const scale = Math.pow(2, (zoom - BASE_ZOOM) * 0.5);
+        document.documentElement.style.setProperty('--marker-scale', scale);
+      };
+      this.map.on('zoom', updateMarkerScale);
+      updateMarkerScale();
     });
   },
 

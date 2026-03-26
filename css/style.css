@@ -268,42 +268,43 @@ body {
 /* Map Markers - Cones */
 .cone-marker {
   cursor: crosshair;
+  transform: scale(var(--marker-scale, 1));
 }
 
 .cone-marker.selected {
-  transform: scale(1.4);
+  transform: scale(calc(var(--marker-scale, 1) * 1.4));
   filter: drop-shadow(0 0 4px rgba(255,255,255,0.8));
 }
 
 .marker-regular {
-  width: 10px;
-  height: 10px;
+  width: 8px;
+  height: 8px;
   background: #ff8c00;
-  border: 1.5px solid #cc7000;
+  border: 1px solid #cc7000;
   border-radius: 50%;
 }
 
 .marker-pointer {
   width: 0;
   height: 0;
-  border-left: 6px solid transparent;
-  border-right: 6px solid transparent;
-  border-bottom: 12px solid #a3e635;
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-bottom: 9px solid #a3e635;
   filter: drop-shadow(0 0 1px rgba(0,0,0,0.5));
   transform-origin: center 66%;
 }
 
 .marker-start {
-  width: 10px;
-  height: 10px;
+  width: 8px;
+  height: 8px;
   background: #22c55e;
-  border: 1.5px solid #16a34a;
+  border: 1px solid #16a34a;
   border-radius: 50%;
 }
 
 .marker-finish {
-  width: 12px;
-  height: 12px;
+  width: 9px;
+  height: 9px;
   background: repeating-conic-gradient(#000 0% 25%, #fff 0% 50%) 50% / 8px 8px;
   border: 1px solid #666;
   border-radius: 2px;
