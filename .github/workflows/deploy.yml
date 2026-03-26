@@ -23,6 +23,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Generate config.js
+        run: |
+          cat > js/config.js << 'JSEOF'
+          const CONFIG = {
+            MAPBOX_TOKEN: '${{ secrets.MAPBOX_TOKEN }}',
+          };
+          JSEOF
+
       - uses: actions/configure-pages@v5
 
       - uses: actions/upload-pages-artifact@v3
