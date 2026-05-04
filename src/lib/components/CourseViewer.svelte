@@ -36,7 +36,7 @@
 		sessionStorage.setItem('editCopyCourse', JSON.stringify(courseStore.course));
 		sessionStorage.setItem('fitCourseOnLoad', 'true');
 		sessionStorage.setItem('skipBanner', 'true');
-		goto('/');
+		window.location.href = '/';
 	}
 
 	onMount(() => {
