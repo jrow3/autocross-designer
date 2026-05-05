@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { createMarker, wrapForMapbox, type AnyMarker } from '$lib/engine/markerFactory';
-	import { onMount } from 'svelte';
+	import { onMount, untrack } from 'svelte';
 	import { mapStore } from '$lib/stores/mapStore.svelte';
 	import { courseStore } from '$lib/stores/courseStore.svelte';
 	import { catmullRomSpline } from '$lib/engine/catmullRom';
@@ -49,16 +49,19 @@
 			.addTo(map);
 
 		marker.on('dragstart', () => {
+			console.log('[DrivingLine] dragstart', index);
 			courseStore.pushUndo();
 		});
 
 		marker.on('drag', () => {
 			const pos = marker.getLngLat();
+			console.log('[DrivingLine] drag', index, pos.lng.toFixed(6), pos.lat.toFixed(6));
 			courseStore.updateWaypointPosition(index, [pos.lng, pos.lat]);
 			updateLine();
 		});
 
 		marker.on('dragend', () => {
+			console.log('[DrivingLine] dragend', index);
 			const pos = marker.getLngLat();
 			courseStore.updateWaypointPosition(index, [pos.lng, pos.lat]);
 			updateLine();
@@ -118,8 +121,8 @@
 
 	$effect(() => {
 		const _waypoints = courseStore.course.drivingLine.length;
-		rebuildMarkers();
-		updateLine();
+		console.log('[DrivingLine] $effect fired, length =', _waypoints);
+		untrack(() => rebuildMarkers());
 	});
 </script>
 

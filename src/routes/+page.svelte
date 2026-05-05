@@ -24,8 +24,9 @@
 	async function handleImport(e: Event) {
 		const file = (e.target as HTMLInputElement).files?.[0];
 		if (!file) return;
-		const data = await importJSON(file);
-		courseStore.load(deserialize(data));
+		const data = deserialize(await importJSON(file));
+		courseStore.load(data);
+		mapContainer?.fitBoundsToCourse(data);
 		(e.target as HTMLInputElement).value = '';
 	}
 </script>
