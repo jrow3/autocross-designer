@@ -1,10 +1,12 @@
 <script lang="ts">
-	import Toolbar from '$lib/components/Toolbar.svelte';
-	import ActionBar from '$lib/components/ActionBar.svelte';
+	import TopBar from '$lib/components/TopBar.svelte';
+	import ModeToolbar from '$lib/components/ModeToolbar.svelte';
 	import MapContainer from '$lib/components/MapContainer.svelte';
 	import ToolStatus from '$lib/components/ToolStatus.svelte';
 	import OnboardingHints from '$lib/components/OnboardingHints.svelte';
-	import Sidebar from '$lib/components/Sidebar.svelte';
+	import VenuePanel from '$lib/components/VenuePanel.svelte';
+	import AnnotationListPanel from '$lib/components/AnnotationListPanel.svelte';
+	import SharePanel from '$lib/components/SharePanel.svelte';
 	import SaveShareDialog from '$lib/components/SaveShareDialog.svelte';
 	import PrintDialog from '$lib/components/PrintDialog.svelte';
 	import HelpDialog from '$lib/components/HelpDialog.svelte';
@@ -19,6 +21,7 @@
 	let showSaveDialog = $state(false);
 	let showPrintDialog = $state(false);
 	let showHelpDialog = $state(false);
+	let showVenuePanel = $state(false);
 	let activeCourse = $state<SavedCourse | null>(null);
 	let fileInput: HTMLInputElement;
 
@@ -33,26 +36,35 @@
 </script>
 
 <div class="app-shell">
-	<Toolbar />
-	<main class="map-area">
-		<ActionBar
+	<TopBar
+		onsave={() => (showSaveDialog = true)}
+		onexport={() => exportJSON(courseStore.course)}
+		onimport={() => fileInput.click()}
+		onprint={() => (showPrintDialog = true)}
+		onexportsvg={() => downloadSVG(courseStore.course)}
+		onhelp={() => (showHelpDialog = true)}
+	/>
+	<ModeToolbar onloadvenue={() => (showVenuePanel = true)} />
+	<div class="main-row">
+		<div class="map-wrapper">
+			<MapContainer bind:this={mapContainer} />
+			<ToolStatus />
+			<OnboardingHints />
+			{#if showVenuePanel}
+				<VenuePanel onclose={() => (showVenuePanel = false)} />
+			{/if}
+			<AnnotationListPanel />
+		</div>
+		<SharePanel
 			onsave={() => (showSaveDialog = true)}
 			onexport={() => exportJSON(courseStore.course)}
 			onimport={() => fileInput.click()}
 			onprint={() => (showPrintDialog = true)}
 			onexportsvg={() => downloadSVG(courseStore.course)}
-			onhelp={() => (showHelpDialog = true)}
+			onfitcourse={(data) => mapContainer?.fitBoundsToCourse(data)}
+			oncourseopened={(course) => activeCourse = course}
 		/>
-		<div class="map-wrapper">
-			<MapContainer bind:this={mapContainer} />
-			<ToolStatus />
-			<OnboardingHints />
-		</div>
-	</main>
-	<Sidebar
-		onfitcourse={(data) => mapContainer?.fitBoundsToCourse(data)}
-		oncourseopened={(course) => activeCourse = course}
-	/>
+	</div>
 </div>
 
 {#if showSaveDialog}
@@ -76,14 +88,14 @@
 <style>
 	.app-shell {
 		display: flex;
+		flex-direction: column;
 		height: 100vh;
 		overflow: hidden;
 	}
 
-	.map-area {
+	.main-row {
 		flex: 1;
 		display: flex;
-		flex-direction: column;
 		overflow: hidden;
 	}
 
@@ -92,5 +104,4 @@
 		position: relative;
 		display: flex;
 	}
-
 </style>

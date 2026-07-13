@@ -5,7 +5,9 @@
 	import { courseStore } from '$lib/stores/courseStore.svelte';
 	import { selectionStore } from '$lib/stores/selectionStore.svelte';
 	import { mapStore } from '$lib/stores/mapStore.svelte';
-	import { KEY_TOOL_MAP } from '$lib/config/shortcuts';
+	import { modeStore } from '$lib/stores/modeStore.svelte';
+	import { UNIVERSAL_KEY_MAP, digitMapFor } from '$lib/config/shortcuts';
+	import { TOOL_DEFS } from '$lib/config/tools';
 	import Toast from '$lib/components/ui/Toast.svelte';
 
 	let { children } = $props();
@@ -41,9 +43,19 @@
 			return;
 		}
 
-		const tool = KEY_TOOL_MAP[e.key.toLowerCase()];
+		if (e.ctrlKey || e.metaKey) return;
+
+		const k = e.key.toLowerCase();
+		const universalTool = UNIVERSAL_KEY_MAP[k];
+		if (universalTool) {
+			toolStore.setTool(universalTool);
+			return;
+		}
+
+		const tool = digitMapFor(modeStore.activeMode)[k];
 		if (tool) {
-			if (tool === 'scale' && mapStore.mode !== 'image') return;
+			const def = TOOL_DEFS.find((d) => d.tool === tool);
+			if (def?.imageModeOnly && mapStore.mode !== 'image') return;
 			toolStore.setTool(tool);
 		}
 	}

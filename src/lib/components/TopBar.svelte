@@ -1,5 +1,7 @@
 <script lang="ts">
 	import { courseStore } from '$lib/stores/courseStore.svelte';
+	import ModeSwitcher from './ModeSwitcher.svelte';
+	import ViewPanel from './ViewPanel.svelte';
 	import Button from './ui/Button.svelte';
 	import Menu from './ui/Menu.svelte';
 	import { tooltip } from './ui/tooltip';
@@ -34,7 +36,13 @@
 {#snippet printIcon()}<Printer size={14} />{/snippet}
 {#snippet importIcon()}<Upload size={14} />{/snippet}
 
-<div class="action-bar">
+<header class="top-bar">
+	<div class="brand-group">
+		<span class="brand">Autocross Designer</span>
+	</div>
+	<div class="center-group">
+		<ModeSwitcher />
+	</div>
 	<div class="action-group">
 		<span class="tip-host" use:tooltip={{ text: 'Undo', shortcut: 'Ctrl+Z', placement: 'bottom' }}>
 			<Button
@@ -60,14 +68,13 @@
 				<Redo2 size={16} />
 			</Button>
 		</span>
-		<div class="separator"></div>
 		<span class="tip-host" use:tooltip={{ text: 'Help & shortcuts', placement: 'bottom' }}>
 			<Button variant="ghost" size="sm" icon label="Help & shortcuts" onclick={onhelp}>
 				<CircleHelp size={16} />
 			</Button>
 		</span>
-	</div>
-	<div class="action-group">
+		<div class="separator"></div>
+		<ViewPanel />
 		<Menu
 			label="File"
 			items={[
@@ -81,12 +88,11 @@
 		</Menu>
 		<Button variant="success" size="sm" onclick={onsave}>Save & Share</Button>
 	</div>
-</div>
+</header>
 
 <style>
-	.action-bar {
+	.top-bar {
 		display: flex;
-		justify-content: space-between;
 		align-items: center;
 		padding: var(--space-1) var(--space-2);
 		background: var(--bg-surface);
@@ -95,10 +101,30 @@
 		flex-shrink: 0;
 	}
 
-	.action-group {
+	.brand-group {
+		flex: 1;
 		display: flex;
-		gap: var(--space-1);
 		align-items: center;
+	}
+
+	.brand {
+		font-size: var(--text-md);
+		font-weight: 650;
+		color: var(--text-primary);
+		white-space: nowrap;
+	}
+
+	.center-group {
+		display: flex;
+		justify-content: center;
+	}
+
+	.action-group {
+		flex: 1;
+		display: flex;
+		justify-content: flex-end;
+		align-items: center;
+		gap: var(--space-1);
 	}
 
 	.tip-host {

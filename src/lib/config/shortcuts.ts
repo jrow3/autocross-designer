@@ -1,29 +1,30 @@
 import type { Tool } from '$lib/stores/toolStore.svelte';
+import type { ModeId } from './modes';
+import { TOOL_DEFS } from './tools';
 
-export const TOOL_SHORTCUTS: Partial<Record<Tool, string>> = {
-	regular: '1',
-	pointer: '2',
-	'start-cone': '3',
-	'finish-cone': '4',
-	gate: '5',
-	slalom: '6',
-	drivingline: '7',
-	measure: '8',
-	note: '9',
-	courseoutline: 'O',
-	trailer: 'T',
-	worker: 'W',
-	scale: 'S',
-	select: 'Esc',
-	'staging-area': 'a',
-	'worker-zone': 'z',
-	'hazard-point': 'h',
-	'hazard-line': 'j'
+export const UNIVERSAL_KEY_MAP: Record<string, Tool> = {
+	v: 'select',
+	m: 'measure'
 };
 
-// Single-character shortcuts only — 'Esc' (select) is handled explicitly in +layout.
-export const KEY_TOOL_MAP: Record<string, Tool> = Object.fromEntries(
-	(Object.entries(TOOL_SHORTCUTS) as [Tool, string][])
-		.filter(([, key]) => key.length === 1)
-		.map(([tool, key]) => [key.toLowerCase(), tool])
-);
+// Digit shortcuts for a mode, derived from TOOL_DEFS order within that mode: index + 1.
+export function digitMapFor(mode: ModeId): Record<string, Tool> {
+	if (mode === 'share') return {};
+	return Object.fromEntries(
+		TOOL_DEFS.filter((def) => def.mode === mode).map((def, index) => [String(index + 1), def.tool])
+	);
+}
+
+// The label reflects the tool's HOME mode: universal tools always show 'V'/'M', and
+// mode tools show their digit within their own mode regardless of the mode passed in.
+// Toolbars only render a tool inside its home mode (plus the universal cluster), so the
+// passed mode never disagrees in practice; when it would, the home-mode digit is still
+// the only key that ever activates the tool.
+export function shortcutLabel(tool: Tool, mode: ModeId): string | undefined {
+	void mode;
+	const def = TOOL_DEFS.find((d) => d.tool === tool);
+	if (!def) return undefined;
+	if (def.mode === 'universal') return tool === 'select' ? 'V' : 'M';
+	const digit = Object.entries(digitMapFor(def.mode)).find(([, t]) => t === tool);
+	return digit?.[0];
+}

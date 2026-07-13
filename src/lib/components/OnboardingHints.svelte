@@ -1,14 +1,15 @@
 <script lang="ts">
-	import { toolStore } from '$lib/stores/toolStore.svelte';
 	import { courseStore } from '$lib/stores/courseStore.svelte';
+	import { modeStore } from '$lib/stores/modeStore.svelte';
+	import { toastStore } from '$lib/stores/toastStore.svelte';
 	import X from '@lucide/svelte/icons/x';
 
-	const STORAGE_KEY = 'onboarded';
+	const STORAGE_KEY = 'onboarded-v2';
 
 	const HINTS = [
-		'Pick a tool on the left — number keys work too',
-		'Click the map to place cones',
-		'Save & Share when ready — press ? button for help'
+		'Start in Venue & Safety — load a venue or mark hazards first',
+		'Switch to Design and press 2 to place cones',
+		"Check & Share when you're ready to print or send"
 	];
 
 	let step = $state(loadStep());
@@ -30,9 +31,15 @@
 		}
 	}
 
-	// Advance on the user's own actions: tool change → step 1 done; first element placed → step 2 done
+	// Advance on the user's own actions: left venue mode or marked it up → step 1 done;
+	// first cone placed → step 2 done; a real course underway or share mode → dismissed
 	$effect(() => {
-		if (step === 0 && toolStore.activeTool !== 'select') {
+		if (
+			step === 0 &&
+			(modeStore.activeMode !== 'venue' ||
+				courseStore.course.hazardMarkers.length > 0 ||
+				courseStore.course.stagingAreas.length > 0)
+		) {
 			step = 1;
 		}
 	});
@@ -44,14 +51,14 @@
 	});
 
 	$effect(() => {
-		if (step === 2 && courseStore.course.cones.length >= 5) {
+		if (step === 2 && (courseStore.course.cones.length >= 5 || modeStore.activeMode === 'share')) {
 			dismiss();
 		}
 	});
 </script>
 
 {#if step < HINTS.length}
-	<div class="hint-pill" role="status">
+	<div class="hint-pill" class:raised={toastStore.toasts.length > 0} role="status">
 		<span class="hint-step">{step + 1}/{HINTS.length}</span>
 		{HINTS[step]}
 		<button class="hint-dismiss" onclick={dismiss} aria-label="Dismiss hints">
@@ -79,6 +86,12 @@
 		backdrop-filter: blur(4px);
 		z-index: var(--z-map-ui);
 		white-space: nowrap;
+		transition: bottom 0.15s ease;
+	}
+
+	/* Toasts share the bottom-center slot — step aside while one is showing */
+	.hint-pill.raised {
+		bottom: calc(var(--space-6) + 56px);
 	}
 
 	.hint-step {

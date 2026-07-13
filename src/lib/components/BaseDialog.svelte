@@ -45,7 +45,10 @@
 	$effect(() => {
 		const previouslyFocused = document.activeElement as HTMLElement | null;
 		const first = dialogEl?.querySelector('input, select, button:not(.dialog-close)') as HTMLElement;
-		first?.focus();
+		// preventScroll: in long dialogs the first focusable can sit at the bottom
+		// (e.g. Help's Close action) and focusing it would scroll the card down
+		first?.focus({ preventScroll: true });
+		if (dialogEl) dialogEl.scrollTop = 0;
 		return () => previouslyFocused?.focus();
 	});
 </script>

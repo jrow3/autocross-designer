@@ -395,6 +395,8 @@
 
 		imageMap.on('load', () => {
 			mapStore.setMap(imageMap);
+			// Start-in-venue invariant: this banner flow runs while modeStore.activeMode is still
+			// 'venue' (deliberately never persisted), and 'venue' is scale's home mode.
 			toolStore.setTool('scale');
 			toolStore.setStatus('Calibrate: click two points with a known distance');
 		});

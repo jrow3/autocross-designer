@@ -80,6 +80,11 @@ create table if not exists shared_venues (
 
 alter table shared_venues enable row level security;
 
+-- Role grants — required on projects whose default privileges predate
+-- Supabase's current auto-grant behavior. RLS policies apply on top.
+grant select on table public.shared_venues to anon, authenticated;
+grant insert, update, delete on table public.shared_venues to authenticated;
+
 -- Everyone (signed in or not) can read shared venues
 create policy "Shared venues are readable by anyone"
   on shared_venues for select

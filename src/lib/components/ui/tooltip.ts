@@ -6,7 +6,7 @@ export interface TooltipParams {
 	placement?: Placement;
 }
 
-const SHOW_DELAY_MS = 400;
+const SHOW_DELAY_MS = 900;
 const WARM_WINDOW_MS = 500;
 const GAP_PX = 8;
 
@@ -26,9 +26,9 @@ function ensureTip(): HTMLDivElement {
 		alignItems: 'center',
 		gap: 'var(--space-2)',
 		padding: 'var(--space-1) var(--space-2)',
-		background: 'var(--bg-elevated)',
-		color: 'var(--text-primary)',
-		border: '1px solid var(--border)',
+		/* Atlas-style dark chip — hardcoded, theme-independent */
+		background: '#202124',
+		color: '#fff',
 		borderRadius: 'var(--radius-md)',
 		boxShadow: 'var(--shadow-md)',
 		fontSize: 'var(--text-sm)',
@@ -42,12 +42,12 @@ function ensureTip(): HTMLDivElement {
 	Object.assign(kbdEl.style, {
 		display: 'none',
 		padding: '1px 5px',
-		background: 'var(--bg-base)',
-		border: '1px solid var(--border)',
+		background: 'rgba(255, 255, 255, 0.15)',
+		border: '1px solid rgba(255, 255, 255, 0.3)',
 		borderRadius: 'var(--radius-sm)',
 		fontFamily: 'var(--font-mono)',
 		fontSize: 'var(--text-xs)',
-		color: 'var(--text-secondary)'
+		color: '#fff'
 	});
 	tipEl.append(textEl, kbdEl);
 	document.body.appendChild(tipEl);

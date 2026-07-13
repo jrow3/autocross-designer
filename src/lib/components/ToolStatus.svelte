@@ -19,16 +19,17 @@
 <style>
 	.tool-status {
 		position: absolute;
-		top: 12px;
-		left: 50%;
-		transform: translateX(-50%);
-		background: rgba(0, 0, 0, 0.85);
-		color: #fff;
+		bottom: var(--space-4);
+		left: var(--space-4);
+		background: rgba(255, 255, 255, 0.95);
+		color: var(--text-primary);
+		border: 1px solid var(--border);
+		box-shadow: var(--shadow-md);
 		padding: 8px 16px;
 		border-radius: 6px;
 		font-size: 13px;
 		pointer-events: none;
-		z-index: 10;
+		z-index: var(--z-map-ui);
 		white-space: nowrap;
 		display: flex;
 		align-items: center;

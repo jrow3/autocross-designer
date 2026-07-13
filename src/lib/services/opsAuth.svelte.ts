@@ -1,5 +1,18 @@
 import { getSupabase } from './supabase';
 
+function signInFailureReason(message: string): string {
+	if (message.includes('Email not confirmed')) {
+		return 'Account not confirmed — confirm the ops user in the Supabase dashboard';
+	}
+	if (message.includes('Invalid login credentials')) {
+		return 'Wrong email or password';
+	}
+	if (message.includes('logins are disabled') || message.includes('not enabled')) {
+		return 'Email sign-in is disabled in Supabase Auth settings';
+	}
+	return message;
+}
+
 let isOps = $state(false);
 let isInitialized = false;
 
@@ -21,16 +34,19 @@ export const opsAuth = {
 		});
 	},
 
-	async signIn(email: string, password: string): Promise<boolean> {
+	async signIn(
+		email: string,
+		password: string
+	): Promise<{ ok: true } | { ok: false; reason: string }> {
 		const sb = getSupabase();
-		if (!sb) return false;
+		if (!sb) return { ok: false, reason: 'Supabase is not configured' };
 
 		const { error } = await sb.auth.signInWithPassword({ email, password });
 		if (error) {
 			console.error('signIn:', error);
-			return false;
+			return { ok: false, reason: signInFailureReason(error.message) };
 		}
-		return true;
+		return { ok: true };
 	},
 
 	async signOut(): Promise<void> {

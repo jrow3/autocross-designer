@@ -96,9 +96,9 @@
 	}
 
 	async function submitSignIn() {
-		const ok = await opsAuth.signIn(email.trim(), password);
-		if (!ok) {
-			toastStore.error('Sign-in failed');
+		const result = await opsAuth.signIn(email.trim(), password);
+		if (!result.ok) {
+			toastStore.error(result.reason);
 			return;
 		}
 		isSignInDialogOpen = false;
