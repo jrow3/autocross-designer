@@ -1,6 +1,5 @@
 <script lang="ts">
-	import mapboxgl from 'mapbox-gl';
-	import MapboxGeocoder from '@mapbox/mapbox-gl-geocoder';
+	import type mapboxgl from 'mapbox-gl';
 	import { onMount, setContext } from 'svelte';
 	import { mapStore } from '$lib/stores/mapStore.svelte';
 	import { toolStore } from '$lib/stores/toolStore.svelte';
@@ -9,7 +8,12 @@
 	import { offsetPointerPosition } from '$lib/engine/coneLogic';
 	import { computeSlalomPositions } from '$lib/engine/slalomLogic';
 	import { ImageMap } from '$lib/engine/imageMap';
-	import { pointInPolygon } from '$lib/engine/polygonEngine';
+	import { pickCourseItem } from '$lib/interactions/hitTest';
+	import { initBoxSelection } from '$lib/interactions/boxSelect';
+	import { initSketchPan } from '$lib/interactions/sketchPan';
+	import { createGateFlow, createSlalomFlow, createScaleFlow, createHazardLineFlow } from '$lib/interactions/placementFlows.svelte';
+	import { computeCourseBounds } from '$lib/engine/courseBounds';
+	import { createMapboxMap } from '$lib/engine/mapSetup';
 	import type { LngLat } from '$lib/types/course';
 	import ConeMarker from './ConeMarker.svelte';
 	import WorkerMarker from './WorkerMarker.svelte';
@@ -21,7 +25,7 @@
 	import MeasurementOverlay from './MeasurementOverlay.svelte';
 	import OutlineOverlay from './OutlineOverlay.svelte';
 	import GridOverlay from './GridOverlay.svelte';
-import SketchOverlay from './SketchOverlay.svelte';
+	import SketchOverlay from './SketchOverlay.svelte';
 	import PolygonOverlay from './PolygonOverlay.svelte';
 	import StagingOverlay from './StagingOverlay.svelte';
 	import WorkerZoneOverlay from './WorkerZoneOverlay.svelte';
@@ -31,10 +35,13 @@ import SketchOverlay from './SketchOverlay.svelte';
 	import ScaleDialog from './ScaleDialog.svelte';
 	import { layerStore } from '$lib/stores/layerStore.svelte';
 	import { autosave, loadAutosave } from '$lib/services/courseService';
+	import { consumeEditCopyHandoff, consumeFitCourseOnLoad, consumeSkipBanner, hasSkipBanner } from '$lib/services/handoff';
 	import { deserialize } from '$lib/engine/courseSerializer';
 	import { createMarker, wrapForMapbox, type AnyMarker } from '$lib/engine/markerFactory';
-	import { distanceFeet } from '$lib/engine/distance';
+	import { distanceFeet } from '$lib/engine/geo';
 	import { selectionStore } from '$lib/stores/selectionStore.svelte';
+	import { TOOL_DEFS } from '$lib/config/tools';
+	import { STAGING_COLOR, WORKER_ZONE_COLOR } from '$lib/config/palette';
 
 	const BASE_ZOOM = 17;
 	let container: HTMLDivElement;
@@ -44,26 +51,18 @@ import SketchOverlay from './SketchOverlay.svelte';
 	}
 
 	// Mode selection — skip banner if coming from shared link "Edit a Copy"
-	let fromSharedLink = !!sessionStorage.getItem('skipBanner');
+	let fromSharedLink = hasSkipBanner();
 	let showBanner = $state(!fromSharedLink);
 
-	// Multi-click tool state
-	let gateCenter: LngLat | null = $state(null);
-	let slalomStart: LngLat | null = $state(null);
-	let slalomEnd: LngLat | null = $state(null);
-	let showSlalomDialog = $state(false);
+	// Multi-click tool flows
+	const gateFlow = createGateFlow();
+	const slalomFlow = createSlalomFlow();
+	const scaleFlow = createScaleFlow();
+	const hazardLineFlow = createHazardLineFlow();
+
 	let pendingNoteLngLat: LngLat | null = $state(null);
 	let mousePos: LngLat | null = $state(null);
 	let nextNoteNumber = $state(1);
-
-	// Hazard line tool state
-	let hazardLinePoints: LngLat[] = $state([]);
-
-	// Scale calibration state
-	let scalePoint1: LngLat | null = $state(null);
-	let scalePoint1Marker: ReturnType<typeof createMarker> | null = null;
-	let scalePixelDist: number = $state(0);
-	let showScaleDialog = $state(false);
 
 	let measurementOverlay = $state<MeasurementOverlay>();
 	let outlineOverlay = $state<OutlineOverlay>();
@@ -74,30 +73,28 @@ import SketchOverlay from './SketchOverlay.svelte';
 
 	setContext('map', mapStore);
 
-
-
-	let previewFrom: LngLat | null = $derived(gateCenter ?? slalomStart);
+	let previewFrom: LngLat | null = $derived(gateFlow.center ?? slalomFlow.start);
 
 	let ghostPositions: LngLat[] = $derived.by(() => {
 		if (!mousePos) return [];
-		if (gateCenter && toolStore.activeTool === 'gate') {
+		if (gateFlow.center && toolStore.activeTool === 'gate') {
 			const { left, right } = computeGateCones(
-				gateCenter, mousePos, toolStore.gateWidthFeet, mapStore.mode
+				gateFlow.center, mousePos, toolStore.gateWidthFeet, mapStore.mode
 			);
 			const positions: LngLat[] = [left, right];
 			if (toolStore.gateDirectionalCones) {
 				const { leftDirectional, rightDirectional } = computeDirectionalCones(
-					gateCenter, mousePos, toolStore.gateWidthFeet, mapStore.mode
+					gateFlow.center, mousePos, toolStore.gateWidthFeet, mapStore.mode
 				);
 				positions.push(leftDirectional, rightDirectional);
 			}
 			return positions;
 		}
-		if (slalomStart && !slalomEnd && toolStore.activeTool === 'slalom') {
+		if (slalomFlow.start && !slalomFlow.end && toolStore.activeTool === 'slalom') {
 			const spacing = toolStore.slalomSpacingFeet;
-			const dist = distanceFeet(slalomStart, mousePos, mapStore.mode);
+			const dist = distanceFeet(slalomFlow.start, mousePos, mapStore.mode);
 			const count = dist != null && dist > 0 ? Math.max(2, Math.floor(dist / spacing) + 1) : 2;
-			return computeSlalomPositions(slalomStart, mousePos, { count, spacingFeet: spacing }, mapStore.mode);
+			return computeSlalomPositions(slalomFlow.start, mousePos, { count, spacingFeet: spacing }, mapStore.mode);
 		}
 		return [];
 	});
@@ -116,8 +113,8 @@ import SketchOverlay from './SketchOverlay.svelte';
 			const inner = document.createElement('div');
 			const isDirectional = i >= 2 && toolStore.activeTool === 'gate';
 			inner.className = `cone-marker ${isDirectional ? 'marker-pointer' : 'marker-regular'} ghost-marker`;
-			const wrapper = wrapForMapbox(inner);
-			const m = createMarker({ element: wrapper })
+			const wrapper = wrapForMapbox(mapStore.mode, inner);
+			const m = createMarker(mapStore.mode, { element: wrapper })
 				.setLngLat(pos as [number, number])
 				.addTo(map);
 			ghostMarkers.push(m);
@@ -128,7 +125,7 @@ import SketchOverlay from './SketchOverlay.svelte';
 		if (!overlay) return false;
 		const firstVertex = overlay.getFirstVertex();
 		if (!firstVertex) return false;
-		const map = mapStore.map as mapboxgl.Map;
+		const map = mapStore.map;
 		if (!map || !e.point) return false;
 		const firstPx = map.project(firstVertex as [number, number]);
 		const clickPx = e.point;
@@ -172,11 +169,11 @@ import SketchOverlay from './SketchOverlay.svelte';
 			}
 
 			case 'gate':
-				handleGateClick(lngLat);
+				gateFlow.handleClick(lngLat);
 				break;
 
 			case 'slalom':
-				handleSlalomClick(lngLat);
+				slalomFlow.handleClick(lngLat);
 				break;
 
 			case 'worker':
@@ -206,7 +203,7 @@ import SketchOverlay from './SketchOverlay.svelte';
 				break;
 
 			case 'scale':
-				handleScaleClick(lngLat);
+				scaleFlow.handleClick(lngLat);
 				break;
 
 			case 'sketch':
@@ -223,6 +220,7 @@ import SketchOverlay from './SketchOverlay.svelte';
 				return;
 
 			case 'hazard-point': {
+				courseStore.pushUndo();
 				courseStore.addHazardMarker({
 					id: generateId(),
 					type: 'point',
@@ -232,125 +230,17 @@ import SketchOverlay from './SketchOverlay.svelte';
 				return;
 			}
 
-			case 'hazard-line': {
-				if (hazardLinePoints.length === 0) {
-					hazardLinePoints = [lngLat];
-					toolStore.setStatus('Click second point to finish hazard line.');
-				} else {
-					courseStore.addHazardMarker({
-						id: generateId(),
-						type: 'line',
-						coordinates: [hazardLinePoints[0], lngLat],
-						bufferFeet: toolStore.hazardBufferFeet
-					});
-					hazardLinePoints = [];
-					toolStore.clearStatus();
-				}
+			case 'hazard-line':
+				hazardLineFlow.handleClick(lngLat);
 				return;
-			}
 
 			case 'select': {
-				// Check if clicking inside a staging area
-				for (const area of courseStore.course.stagingAreas) {
-					if (pointInPolygon(lngLat, area.vertices)) {
-						selectionStore.clear();
-						selectionStore.select('staging-area', area.id);
-						return;
-					}
-				}
-				// Check if clicking inside a worker zone
-				for (const zone of courseStore.course.workerZones) {
-					if (pointInPolygon(lngLat, zone.vertices)) {
-						selectionStore.clear();
-						selectionStore.select('worker-zone', zone.id);
-						return;
-					}
-				}
-				// Check if clicking near a hazard marker
-				let closestHazardId = '';
-				let closestHazardDist = Infinity;
-				for (const marker of courseStore.course.hazardMarkers) {
-					for (const coord of marker.coordinates) {
-						const dx = coord[0] - lngLat[0];
-						const dy = coord[1] - lngLat[1];
-						const d = dx * dx + dy * dy;
-						if (d < closestHazardDist) {
-							closestHazardDist = d;
-							closestHazardId = marker.id;
-						}
-					}
-				}
-				if (closestHazardId && closestHazardDist < 0.0003 * 0.0003) {
-					selectionStore.clear();
-					selectionStore.select('hazard', closestHazardId);
-					break;
-				}
+				const hit = pickCourseItem(courseStore.course, lngLat);
 				selectionStore.clear();
+				if (hit) selectionStore.select(hit.type, hit.id);
 				break;
 			}
 		}
-	}
-
-	function handleGateClick(lngLat: LngLat) {
-		if (!gateCenter) {
-			gateCenter = lngLat;
-			toolStore.setStatus('Click to set driving direction through the gate');
-		} else {
-			courseStore.pushUndo();
-			const { left, right } = computeGateCones(
-				gateCenter,
-				lngLat,
-				toolStore.gateWidthFeet,
-				mapStore.mode
-			);
-			courseStore.addCone({ id: generateId(), type: 'regular', lngLat: left, lockedTargetId: null });
-			courseStore.addCone({ id: generateId(), type: 'regular', lngLat: right, lockedTargetId: null });
-			if (toolStore.gateDirectionalCones) {
-				const { leftDirectional, rightDirectional } = computeDirectionalCones(
-					gateCenter, lngLat, toolStore.gateWidthFeet, mapStore.mode
-				);
-				courseStore.addCone({ id: generateId(), type: 'pointer', lngLat: leftDirectional, lockedTargetId: null });
-				courseStore.addCone({ id: generateId(), type: 'pointer', lngLat: rightDirectional, lockedTargetId: null });
-			}
-			gateCenter = null;
-			toolStore.clearStatus();
-		}
-	}
-
-	function handleSlalomClick(lngLat: LngLat) {
-		if (showSlalomDialog) return;
-		if (!slalomStart) {
-			slalomStart = lngLat;
-			toolStore.setStatus('Click the end position for the slalom');
-		} else {
-			slalomEnd = lngLat;
-			showSlalomDialog = true;
-			toolStore.clearStatus();
-		}
-	}
-
-	function handleSlalomConfirm(count: number, spacingFeet: number) {
-		if (!slalomStart || !slalomEnd) return;
-		courseStore.pushUndo();
-		const positions = computeSlalomPositions(
-			slalomStart,
-			slalomEnd,
-			{ count, spacingFeet: spacingFeet || undefined },
-			mapStore.mode
-		);
-		for (const pos of positions) {
-			courseStore.addCone({ id: generateId(), type: 'regular', lngLat: pos, lockedTargetId: null });
-		}
-		slalomStart = null;
-		slalomEnd = null;
-		showSlalomDialog = false;
-	}
-
-	function handleSlalomCancel() {
-		slalomStart = null;
-		slalomEnd = null;
-		showSlalomDialog = false;
-		toolStore.clearStatus();
 	}
 
 	function handleNoteConfirm(text: string) {
@@ -367,45 +257,6 @@ import SketchOverlay from './SketchOverlay.svelte';
 
 	function handleNoteCancel() {
 		pendingNoteLngLat = null;
-	}
-
-	function handleScaleClick(lngLat: LngLat) {
-		if (!scalePoint1) {
-			scalePoint1 = lngLat;
-			const map = mapStore.map!;
-			const el = document.createElement('div');
-			el.className = 'measurement-endpoint';
-			scalePoint1Marker = createMarker({ element: el })
-				.setLngLat(lngLat as [number, number])
-				.addTo(map);
-			toolStore.setStatus('Click the second point to set scale');
-		} else {
-			const dx = lngLat[0] - scalePoint1[0];
-			const dy = lngLat[1] - scalePoint1[1];
-			scalePixelDist = Math.sqrt(dx * dx + dy * dy);
-			showScaleDialog = true;
-			scalePoint1 = null;
-			scalePoint1Marker?.remove();
-			scalePoint1Marker = null;
-			toolStore.clearStatus();
-		}
-	}
-
-	function handleScaleConfirm(feetPerPixel: number) {
-		const map = mapStore.map;
-		if (map && 'setScale' in map) {
-			map.setScale(feetPerPixel);
-		}
-		showScaleDialog = false;
-		toolStore.setStatus(`Scale: ${feetPerPixel.toFixed(4)} ft/px`);
-	}
-
-	function handleScaleCancel() {
-		showScaleDialog = false;
-		scalePoint1 = null;
-		scalePoint1Marker?.remove();
-		scalePoint1Marker = null;
-		toolStore.clearStatus();
 	}
 
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -431,181 +282,8 @@ import SketchOverlay from './SketchOverlay.svelte';
 		container?.style.setProperty('--marker-scale', String(scale));
 	}
 
-	// Box selection for select tool
-	let isBoxSelecting = false;
-
-	// Right-click pan in sketch mode
-	let isRightClickPanning = false;
-	let rightClickPanStart: { x: number; y: number } | null = null;
-
-	function initSketchPan() {
-		const canvasContainer = container.querySelector('.mapboxgl-canvas-container') as HTMLElement | null;
-		if (!canvasContainer) return;
-
-		canvasContainer.addEventListener('contextmenu', (e) => {
-			e.preventDefault();
-		});
-
-		canvasContainer.addEventListener('mousedown', (e) => {
-			if (e.button !== 2) return;
-			isRightClickPanning = true;
-			rightClickPanStart = { x: e.clientX, y: e.clientY };
-			canvasContainer.style.cursor = 'grabbing';
-		});
-
-		canvasContainer.addEventListener('mousemove', (e) => {
-			if (!isRightClickPanning || !rightClickPanStart) return;
-			const dx = e.clientX - rightClickPanStart.x;
-			const dy = e.clientY - rightClickPanStart.y;
-			(mapStore.map as mapboxgl.Map).panBy([-dx, -dy], { duration: 0 });
-			rightClickPanStart = { x: e.clientX, y: e.clientY };
-		});
-
-		canvasContainer.addEventListener('mouseup', (e) => {
-			if (e.button !== 2) return;
-			isRightClickPanning = false;
-			rightClickPanStart = null;
-			canvasContainer.style.cursor = '';
-		});
-	}
-
-	function initBoxSelection() {
-		container.addEventListener('mousedown', (e) => {
-			if (toolStore.activeTool !== 'select' || e.button !== 0) return;
-			const target = e.target as HTMLElement;
-			if (target.closest('.cone-marker,.worker-marker,.obstacle-marker,.note-marker,.measurement-endpoint,.outline-endpoint,.outline-control,.resize-handle,.rotate-handle,.mapboxgl-ctrl,.mapboxgl-marker')) return;
-
-			e.preventDefault();
-			isBoxSelecting = true;
-			selectionStore.startBox(e.clientX, e.clientY);
-
-			const map = mapStore.map;
-			if (map && 'dragPan' in map) (map as mapboxgl.Map).dragPan.disable();
-
-			const onMove = (ev: MouseEvent) => {
-				if (!isBoxSelecting) return;
-				selectionStore.updateBox(ev.clientX, ev.clientY);
-			};
-
-			const onUp = () => {
-				if (!isBoxSelecting) return;
-				isBoxSelecting = false;
-				selectionStore.endBox();
-				if (map && 'dragPan' in map) (map as mapboxgl.Map).dragPan.enable();
-				document.removeEventListener('mousemove', onMove);
-				document.removeEventListener('mouseup', onUp);
-
-				const rect = selectionStore.boxRect;
-				if (rect.width < 5 && rect.height < 5) {
-					// Single click, not a drag — try selecting zones/hazards
-					const mapEl2 = map as mapboxgl.Map;
-					const containerRect2 = container.getBoundingClientRect();
-					const clickPt = mapEl2.unproject([
-						rect.x - containerRect2.left,
-						rect.y - containerRect2.top
-					]);
-					const clickLngLat: LngLat = [clickPt.lng, clickPt.lat];
-					for (const area of courseStore.course.stagingAreas) {
-						if (pointInPolygon(clickLngLat, area.vertices)) {
-							selectionStore.clear();
-							selectionStore.select('staging-area', area.id);
-							return;
-						}
-					}
-					for (const zone of courseStore.course.workerZones) {
-						if (pointInPolygon(clickLngLat, zone.vertices)) {
-							selectionStore.clear();
-							selectionStore.select('worker-zone', zone.id);
-							return;
-						}
-					}
-					let nearestHId = '';
-					let nearestHDist = Infinity;
-					for (const m of courseStore.course.hazardMarkers) {
-						for (const coord of m.coordinates) {
-							const dx = coord[0] - clickLngLat[0];
-							const dy = coord[1] - clickLngLat[1];
-							const d = dx * dx + dy * dy;
-							if (d < nearestHDist) { nearestHDist = d; nearestHId = m.id; }
-						}
-					}
-					if (nearestHId && nearestHDist < 0.0003 * 0.0003) {
-						selectionStore.clear();
-						selectionStore.select('hazard', nearestHId);
-						return;
-					}
-					// Check sketches
-					for (const sk of courseStore.course.sketches) {
-						for (const pt of sk.points) {
-							const dx = pt[0] - clickLngLat[0];
-							const dy = pt[1] - clickLngLat[1];
-							if (dx * dx + dy * dy < 0.00005 * 0.00005) {
-								selectionStore.clear();
-								selectionStore.select('sketch', sk.id);
-								return;
-							}
-						}
-					}
-					selectionStore.clear();
-					return;
-				}
-
-				selectionStore.clear();
-				const mapEl = map as mapboxgl.Map;
-				const containerRect = container.getBoundingClientRect();
-
-				function inBox(lngLat: [number, number]): boolean {
-					const pt = mapEl.project(lngLat);
-					const sx = pt.x + containerRect.left;
-					const sy = pt.y + containerRect.top;
-					return sx >= rect.x && sx <= rect.x + rect.width && sy >= rect.y && sy <= rect.y + rect.height;
-				}
-
-				for (const cone of courseStore.course.cones) {
-					if (inBox(cone.lngLat as [number, number])) selectionStore.select('cone', cone.id);
-				}
-				for (const w of courseStore.course.workers) {
-					if (inBox(w.lngLat as [number, number])) selectionStore.select('worker', w.id);
-				}
-				courseStore.course.measurements.forEach((m, i) => {
-					if (inBox(m.p1 as [number, number]) || inBox(m.p2 as [number, number])) {
-						selectionStore.select('measurement', String(i));
-					}
-				});
-				courseStore.course.courseOutline.forEach((seg, i) => {
-					if (inBox(seg.p1 as [number, number]) || inBox(seg.p2 as [number, number])) {
-						selectionStore.select('outline', String(i));
-					}
-				});
-				for (const h of courseStore.course.hazardMarkers) {
-					for (const coord of h.coordinates) {
-						if (inBox(coord as [number, number])) {
-							selectionStore.select('hazard', h.id);
-							break;
-						}
-					}
-				}
-				for (const area of courseStore.course.stagingAreas) {
-					if (area.vertices.some(v => inBox(v as [number, number]))) {
-						selectionStore.select('staging-area', area.id);
-					}
-				}
-				for (const zone of courseStore.course.workerZones) {
-					if (zone.vertices.some(v => inBox(v as [number, number]))) {
-						selectionStore.select('worker-zone', zone.id);
-					}
-				}
-				for (const sk of courseStore.course.sketches) {
-					if (sk.points.some(p => inBox(p as [number, number]))) {
-						selectionStore.select('sketch', sk.id);
-					}
-				}
-			};
-
-			document.addEventListener('mousemove', onMove);
-			document.addEventListener('mouseup', onUp);
-		});
-	}
+	let boxSelectCleanup: (() => void) | null = null;
+	let sketchPanCleanup: (() => void) | null = null;
 
 	$effect(() => {
 		const _size = mapStore.markerSize;
@@ -630,18 +308,13 @@ import SketchOverlay from './SketchOverlay.svelte';
 
 	$effect(() => {
 		const _tool = toolStore.activeTool;
-		gateCenter = null;
-		if (!showSlalomDialog) {
-			slalomStart = null;
-			slalomEnd = null;
-		}
-		scalePoint1 = null;
-		scalePoint1Marker?.remove();
-		scalePoint1Marker = null;
+		gateFlow.reset();
+		slalomFlow.reset();
+		scaleFlow.reset();
 		measurementOverlay?.cancelPending();
 		outlineOverlay?.cancelPending();
 		if (toolStore.activeTool !== 'hazard-line') {
-			hazardLinePoints = [];
+			hazardLineFlow.reset();
 		}
 	});
 
@@ -656,10 +329,9 @@ import SketchOverlay from './SketchOverlay.svelte';
 
 	function handleModeSelect(mode: 'map' | 'image', imageSrc?: string, _fileName?: string) {
 		// Load course data: from Edit a Copy sessionStorage, or from autosave
-		const editCopyRaw = sessionStorage.getItem('editCopyCourse');
-		if (editCopyRaw) {
-			sessionStorage.removeItem('editCopyCourse');
-			courseStore.load(deserialize(JSON.parse(editCopyRaw)));
+		const editCopy = consumeEditCopyHandoff();
+		if (editCopy) {
+			courseStore.load(deserialize(editCopy));
 		} else if (!fromSharedLink) {
 			const saved = loadAutosave();
 			if (saved) {
@@ -684,53 +356,19 @@ import SketchOverlay from './SketchOverlay.svelte';
 			return;
 		}
 
-		mapboxgl.accessToken = token;
-		mapboxgl.workerUrl = '/mapbox-gl-csp-worker.js';
-
-		const map = new mapboxgl.Map({
-			container,
-			style: 'mapbox://styles/mapbox/satellite-streets-v12',
-			center: courseStore.course.mapCenter as [number, number],
+		const map = createMapboxMap(container, {
+			center: courseStore.course.mapCenter,
 			zoom: courseStore.course.mapZoom,
-			minZoom: 10,
-			maxZoom: 22,
-			preserveDrawingBuffer: true,
-			dragRotate: false,
-			pitchWithRotate: false,
-			touchPitch: false
+			token
 		});
-
-		map.doubleClickZoom.disable();
-		map.addControl(new mapboxgl.NavigationControl(), 'bottom-right');
-
-		map.addControl(new MapboxGeocoder({
-			accessToken: token,
-			mapboxgl: mapboxgl as never,
-			collapsed: true,
-			placeholder: 'Search location...'
-		}), 'top-right');
 
 		map.on('load', () => {
 			mapStore.setMap(map);
-			initBoxSelection();
-			initSketchPan();
-			if (sessionStorage.getItem('fitCourseOnLoad')) {
-				sessionStorage.removeItem('fitCourseOnLoad');
+			boxSelectCleanup = initBoxSelection(container, () => mapStore.map);
+			sketchPanCleanup = initSketchPan(container, () => mapStore.map);
+			if (consumeFitCourseOnLoad()) {
 				setTimeout(() => fitBoundsToCourse(), 100);
 			}
-			document.addEventListener('keydown', (e) => {
-				if (e.key === 'Delete' || e.key === 'Backspace') {
-					sketchOverlay?.deleteSelected();
-				}
-				if (e.key === 'Enter') {
-					if (toolStore.activeTool === 'staging-area') stagingPolygonOverlay?.close();
-					if (toolStore.activeTool === 'worker-zone') workerZonePolygonOverlay?.close();
-				}
-				if (e.key === 'Escape') {
-					if (toolStore.activeTool === 'staging-area') stagingPolygonOverlay?.cancel();
-					if (toolStore.activeTool === 'worker-zone') workerZonePolygonOverlay?.cancel();
-				}
-			});
 		});
 
 		map.on('zoom', () => {
@@ -777,68 +415,47 @@ import SketchOverlay from './SketchOverlay.svelte';
 			const center = imageMap.getCenter();
 			courseStore.setMapView([center.lng, center.lat], imageMap.getZoom());
 		});
+	}
 
-		document.addEventListener('keydown', (e) => {
-			if (e.key === 'Delete' || e.key === 'Backspace') {
-				sketchOverlay?.deleteSelected();
-			}
-		});
+	function handleMapKeydown(e: KeyboardEvent) {
+		if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+
+		if (e.key === 'Delete' || e.key === 'Backspace') {
+			sketchOverlay?.deleteSelected();
+		}
+		if (e.key === 'Enter') {
+			if (toolStore.activeTool === 'staging-area') stagingPolygonOverlay?.close();
+			if (toolStore.activeTool === 'worker-zone') workerZonePolygonOverlay?.close();
+		}
+		if (e.key === 'Escape') {
+			if (toolStore.activeTool === 'staging-area') stagingPolygonOverlay?.cancel();
+			if (toolStore.activeTool === 'worker-zone') workerZonePolygonOverlay?.cancel();
+		}
 	}
 
 	export function fitBoundsToCourse(data?: import('$lib/types/course').CourseData) {
 		const map = mapStore.map;
 		if (!map || !('fitBounds' in map)) return;
-
-		const course = data ?? courseStore.course;
-		const points: LngLat[] = [];
-		for (const c of course.cones) points.push(c.lngLat);
-		for (const wp of course.drivingLine) points.push(wp.lngLat);
-		for (const m of course.measurements) { points.push(m.p1); points.push(m.p2); }
-		for (const n of course.notes) points.push(n.lngLat);
-		for (const w of course.workers) points.push(w.lngLat);
-		for (const s of course.courseOutline) { points.push(s.p1); points.push(s.p2); }
-		for (const sk of (course.sketches ?? [])) {
-			for (const p of sk.points) points.push(p);
-		}
-
-		if (points.length === 0) return;
-
-		// Filter outliers: remove points far from the median cluster
-		const lngs = points.map(p => p[0]).sort((a, b) => a - b);
-		const lats = points.map(p => p[1]).sort((a, b) => a - b);
-		const medLng = lngs[Math.floor(lngs.length / 2)];
-		const medLat = lats[Math.floor(lats.length / 2)];
-		const filtered = points.filter(p =>
-			Math.abs(p[0] - medLng) < 1 && Math.abs(p[1] - medLat) < 1
-		);
-		const fitPoints = filtered.length > 0 ? filtered : points;
-
-		let minLng = Infinity, maxLng = -Infinity, minLat = Infinity, maxLat = -Infinity;
-		for (const [lng, lat] of fitPoints) {
-			if (lng < minLng) minLng = lng;
-			if (lng > maxLng) maxLng = lng;
-			if (lat < minLat) minLat = lat;
-			if (lat > maxLat) maxLat = lat;
-		}
-
-		(map as mapboxgl.Map).fitBounds(
-			[[minLng, minLat], [maxLng, maxLat]],
-			{ padding: 0, animate: false }
-		);
+		const bounds = computeCourseBounds(data ?? courseStore.course);
+		if (!bounds) return;
+		map.fitBounds(bounds, { padding: 0, animate: false });
 	}
 
 	onMount(() => {
-		if (sessionStorage.getItem('skipBanner')) {
-			sessionStorage.removeItem('skipBanner');
+		document.addEventListener('keydown', handleMapKeydown);
+		if (consumeSkipBanner()) {
 			handleModeSelect('map');
 		}
 		return () => {
+			document.removeEventListener('keydown', handleMapKeydown);
+			boxSelectCleanup?.();
+			sketchPanCleanup?.();
 			mapStore.map?.remove();
 		};
 	});
 </script>
 
-<div class="map-outer">
+<div class="map-outer" style="--map-cursor: {TOOL_DEFS.find((d) => d.tool === toolStore.activeTool)?.cursor ?? 'crosshair'}">
 	<div class="map-container" bind:this={container}></div>
 
 	{#if showBanner}
@@ -880,7 +497,7 @@ import SketchOverlay from './SketchOverlay.svelte';
 		{#if layerStore.isVisible('workerZones')}
 			<WorkerZoneOverlay />
 		{/if}
-		{#if layerStore.isVisible('safetyZones')}
+		{#if layerStore.isVisible('hazardMarkers')}
 			<HazardOverlay />
 		{/if}
 		{#if layerStore.isVisible('coneNumbers')}
@@ -889,10 +506,11 @@ import SketchOverlay from './SketchOverlay.svelte';
 		<PolygonOverlay
 			bind:this={stagingPolygonOverlay}
 			activeTools={['staging-area']}
-			fillColor="#6495ED"
+			fillColor={STAGING_COLOR}
 			fillOpacity={0.2}
-			strokeColor="#6495ED"
+			strokeColor={STAGING_COLOR}
 			onComplete={(vertices) => {
+				courseStore.pushUndo();
 				courseStore.addStagingArea({
 					id: generateId(),
 					vertices,
@@ -903,12 +521,13 @@ import SketchOverlay from './SketchOverlay.svelte';
 		<PolygonOverlay
 			bind:this={workerZonePolygonOverlay}
 			activeTools={['worker-zone']}
-			fillColor="#ff6b6b"
+			fillColor={WORKER_ZONE_COLOR}
 			fillOpacity={0.1}
-			strokeColor="#ff6b6b"
+			strokeColor={WORKER_ZONE_COLOR}
 			strokeDasharray={[6, 3]}
 			onComplete={(vertices) => {
 				const nextStation = Math.max(0, ...courseStore.course.workerZones.map(z => z.stationNumber)) + 1;
+				courseStore.pushUndo();
 				courseStore.addWorkerZone({
 					id: generateId(),
 					vertices,
@@ -923,12 +542,12 @@ import SketchOverlay from './SketchOverlay.svelte';
 	<PreviewLine from={previewFrom} to={mousePos} />
 {/if}
 
-{#if showSlalomDialog && slalomStart && slalomEnd}
+{#if slalomFlow.showDialog && slalomFlow.start && slalomFlow.end}
 	<SlalomDialog
-		start={slalomStart}
-		end={slalomEnd}
-		onconfirm={handleSlalomConfirm}
-		oncancel={handleSlalomCancel}
+		start={slalomFlow.start}
+		end={slalomFlow.end}
+		onconfirm={(count, spacing) => slalomFlow.confirm(count, spacing)}
+		oncancel={() => slalomFlow.cancel()}
 	/>
 {/if}
 
@@ -936,11 +555,11 @@ import SketchOverlay from './SketchOverlay.svelte';
 	<NoteDialog onconfirm={handleNoteConfirm} oncancel={handleNoteCancel} />
 {/if}
 
-{#if showScaleDialog}
+{#if scaleFlow.showDialog}
 	<ScaleDialog
-		pixelDistance={scalePixelDist}
-		onconfirm={handleScaleConfirm}
-		oncancel={handleScaleCancel}
+		pixelDistance={scaleFlow.pixelDist}
+		onconfirm={(feetPerPixel) => scaleFlow.confirm(feetPerPixel)}
+		oncancel={() => scaleFlow.cancel()}
 	/>
 {/if}
 
@@ -962,7 +581,7 @@ import SketchOverlay from './SketchOverlay.svelte';
 	}
 
 	.map-container :global(.mapboxgl-canvas-container) {
-		cursor: crosshair;
+		cursor: var(--map-cursor, crosshair);
 		z-index: 2;
 	}
 

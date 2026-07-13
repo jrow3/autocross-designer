@@ -1,6 +1,6 @@
 import { getSupabase, isSupabaseConfigured } from './supabase';
 import { getCreatorToken } from './creatorToken';
-import type { CourseData } from '$lib/types/course';
+import type { CourseData, VenueData } from '$lib/types/course';
 
 export interface SavedCourse {
 	id: string;
@@ -100,6 +100,7 @@ export async function deleteCourse(id: string): Promise<boolean> {
 
 const LOCAL_KEY = 'autocross-courses';
 const AUTOSAVE_KEY = 'autocross-autosave';
+const VENUES_KEY = 'autocross-venues';
 
 export function saveLocal(name: string, data: CourseData): void {
 	try {
@@ -152,6 +153,32 @@ export function loadAutosave(): CourseData | null {
 		return raw ? JSON.parse(raw) : null;
 	} catch {
 		return null;
+	}
+}
+
+export function loadVenues(): Record<string, VenueData> {
+	try {
+		return JSON.parse(localStorage.getItem(VENUES_KEY) || '{}');
+	} catch {
+		return {};
+	}
+}
+
+export function saveVenues(venues: Record<string, VenueData>): void {
+	try {
+		localStorage.setItem(VENUES_KEY, JSON.stringify(venues));
+	} catch (e) {
+		console.error('saveVenues:', e);
+	}
+}
+
+export function deleteVenue(name: string): void {
+	try {
+		const all = JSON.parse(localStorage.getItem(VENUES_KEY) || '{}');
+		delete all[name];
+		localStorage.setItem(VENUES_KEY, JSON.stringify(all));
+	} catch (e) {
+		console.error('deleteVenue:', e);
 	}
 }
 

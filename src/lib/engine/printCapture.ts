@@ -1,27 +1,28 @@
-import { mapStore } from '$lib/stores/mapStore.svelte';
-import { courseStore } from '$lib/stores/courseStore.svelte';
-import { layerStore } from '$lib/stores/layerStore.svelte';
+import type mapboxgl from 'mapbox-gl';
+import type { ImageMap } from './imageMap';
+import type { CourseData } from '$lib/types/course';
+import { CONE_COLORS, coneColor, NOTE_COLOR, WORKER_COLOR } from './renderColors';
 
-function coneColor(type: string): string {
-	switch (type) {
-		case 'pointer': return '#ef4444';
-		case 'start-cone': return '#22c55e';
-		case 'finish-cone': return '#ffffff';
-		case 'trailer': return '#6b7280';
-		default: return '#f97316';
-	}
+export interface CaptureOptions {
+	map: mapboxgl.Map | ImageMap | null;
+	mode: 'map' | 'image';
+	course: CourseData;
+	mapFade: number;
+	markerSize: number;
+	isLayerVisible: (layer: 'cones' | 'workers' | 'notes') => boolean;
 }
 
-export async function captureMapCanvas(): Promise<HTMLCanvasElement | null> {
-	const map = mapStore.map;
+export async function captureMapCanvas(options: CaptureOptions): Promise<HTMLCanvasElement | null> {
+	const { map, mode, course, mapFade, markerSize, isLayerVisible } = options;
 	if (!map) return null;
 
-	if (mapStore.mode !== 'map') {
+	if (mode !== 'map') {
 		if ('getCanvas' in map) return map.getCanvas();
 		return null;
 	}
 
-	const mapCanvas = map.getCanvas?.() as HTMLCanvasElement | undefined;
+	if (!('getCanvas' in map)) return null;
+	const mapCanvas = map.getCanvas();
 	if (!mapCanvas) return null;
 
 	const copy = document.createElement('canvas');
@@ -33,20 +34,19 @@ export async function captureMapCanvas(): Promise<HTMLCanvasElement | null> {
 	ctx.drawImage(mapCanvas, 0, 0);
 
 	// Apply map fade as a filter overlay
-	const fade = mapStore.mapFade;
-	if (fade > 0) {
-		const alpha = fade / 100 * 0.8;
+	if (mapFade > 0) {
+		const alpha = mapFade / 100 * 0.8;
 		ctx.fillStyle = `rgba(0, 0, 0, ${alpha})`;
 		ctx.fillRect(0, 0, copy.width, copy.height);
 	}
 
 	const ratio = copy.width / mapCanvas.clientWidth;
-	const markerScale = mapStore.markerSize;
+	const markerScale = markerSize;
 
 	// Draw cones
-	if (layerStore.isVisible('cones')) {
-		for (const cone of courseStore.course.cones) {
-			const px = map.project(cone.lngLat as [number, number]);
+	if (isLayerVisible('cones')) {
+		for (const cone of course.cones) {
+			const px = map.project(cone.lngLat);
 			const x = px.x * ratio;
 			const y = px.y * ratio;
 
@@ -56,7 +56,7 @@ export async function captureMapCanvas(): Promise<HTMLCanvasElement | null> {
 				ctx.save();
 				ctx.translate(x, y);
 				if (cone.rotation) ctx.rotate(cone.rotation * Math.PI / 180);
-				ctx.fillStyle = '#6b7280';
+				ctx.fillStyle = CONE_COLORS.trailer;
 				ctx.fillRect(-w / 2, -h / 2, w, h);
 				ctx.strokeStyle = '#ffffff';
 				ctx.lineWidth = ratio;
@@ -83,16 +83,16 @@ export async function captureMapCanvas(): Promise<HTMLCanvasElement | null> {
 	}
 
 	// Draw workers
-	if (layerStore.isVisible('workers')) {
-		for (const w of courseStore.course.workers) {
-			const px = map.project(w.lngLat as [number, number]);
+	if (isLayerVisible('workers')) {
+		for (const w of course.workers) {
+			const px = map.project(w.lngLat);
 			const x = px.x * ratio;
 			const y = px.y * ratio;
 			const r = 8 * markerScale * ratio;
 
 			ctx.beginPath();
 			ctx.arc(x, y, r, 0, Math.PI * 2);
-			ctx.fillStyle = '#7c3aed';
+			ctx.fillStyle = WORKER_COLOR;
 			ctx.fill();
 			ctx.strokeStyle = '#ffffff';
 			ctx.lineWidth = 1.5 * ratio;
@@ -107,16 +107,16 @@ export async function captureMapCanvas(): Promise<HTMLCanvasElement | null> {
 	}
 
 	// Draw notes
-	if (layerStore.isVisible('notes')) {
-		for (const n of courseStore.course.notes) {
-			const px = map.project(n.lngLat as [number, number]);
+	if (isLayerVisible('notes')) {
+		for (const n of course.notes) {
+			const px = map.project(n.lngLat);
 			const x = px.x * ratio;
 			const y = px.y * ratio;
 			const r = 8 * markerScale * ratio;
 
 			ctx.beginPath();
 			ctx.arc(x, y, r, 0, Math.PI * 2);
-			ctx.fillStyle = '#0ea5e9';
+			ctx.fillStyle = NOTE_COLOR;
 			ctx.fill();
 			ctx.strokeStyle = '#ffffff';
 			ctx.lineWidth = 1.5 * ratio;
@@ -186,9 +186,9 @@ export function renderPrintCanvas(
 
 	if (layout.showLegend) {
 		const legends = [
-			{ color: '#f97316', label: 'Regular' },
-			{ color: '#22c55e', label: 'Start' },
-			{ color: '#ef4444', label: 'Pointer' }
+			{ color: CONE_COLORS.regular, label: 'Regular' },
+			{ color: CONE_COLORS['start-cone'], label: 'Start' },
+			{ color: CONE_COLORS.pointer, label: 'Pointer' }
 		];
 		for (const leg of legends) {
 			ctx.fillStyle = leg.color;

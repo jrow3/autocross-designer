@@ -3,6 +3,7 @@
 	import { mapStore } from '$lib/stores/mapStore.svelte';
 	import { courseStore } from '$lib/stores/courseStore.svelte';
 	import { pointBuffer, lineBuffer } from '$lib/engine/bufferGeometry';
+	import { HAZARD_COLOR } from '$lib/config/palette';
 
 	const BUFFER_SOURCE = 'hazard-buffer-source';
 	const MARKER_SOURCE = 'hazard-marker-source';
@@ -77,14 +78,14 @@
 			id: BUFFER_FILL_LAYER,
 			type: 'fill',
 			source: BUFFER_SOURCE,
-			paint: { 'fill-color': '#ff0000', 'fill-opacity': 0.15 }
+			paint: { 'fill-color': HAZARD_COLOR, 'fill-opacity': 0.15 }
 		});
 
 		map.addLayer({
 			id: BUFFER_LINE_LAYER,
 			type: 'line',
 			source: BUFFER_SOURCE,
-			paint: { 'line-color': '#ff0000', 'line-width': 1, 'line-dasharray': [4, 3] }
+			paint: { 'line-color': HAZARD_COLOR, 'line-width': 1, 'line-dasharray': [4, 3] }
 		});
 
 		map.addLayer({
@@ -92,7 +93,7 @@
 			type: 'circle',
 			source: MARKER_SOURCE,
 			filter: ['==', '$type', 'Point'],
-			paint: { 'circle-radius': 5, 'circle-color': '#ff0000', 'circle-stroke-width': 2, 'circle-stroke-color': '#ffffff' }
+			paint: { 'circle-radius': 5, 'circle-color': HAZARD_COLOR, 'circle-stroke-width': 2, 'circle-stroke-color': '#ffffff' }
 		});
 
 		map.addLayer({
@@ -100,7 +101,7 @@
 			type: 'line',
 			source: MARKER_SOURCE,
 			filter: ['==', '$type', 'LineString'],
-			paint: { 'line-color': '#ff0000', 'line-width': 3 }
+			paint: { 'line-color': HAZARD_COLOR, 'line-width': 3 }
 		});
 	});
 

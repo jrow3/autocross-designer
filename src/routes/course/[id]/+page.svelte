@@ -5,6 +5,9 @@
 	import { deserialize } from '$lib/engine/courseSerializer';
 	import { courseStore } from '$lib/stores/courseStore.svelte';
 	import CourseViewer from '$lib/components/CourseViewer.svelte';
+	import EmptyState from '$lib/components/ui/EmptyState.svelte';
+	import MapPinned from '@lucide/svelte/icons/map-pinned';
+	import CircleAlert from '@lucide/svelte/icons/circle-alert';
 
 	let loading = $state(true);
 	let error = $state('');
@@ -31,26 +34,35 @@
 </script>
 
 {#if loading}
-	<div class="loading">Loading course...</div>
+	<div class="page-state">
+		<EmptyState message="Loading course...">
+			{#snippet icon()}<MapPinned size={20} />{/snippet}
+		</EmptyState>
+	</div>
 {:else if error}
-	<div class="error">{error}</div>
+	<div class="page-state error">
+		<EmptyState
+			message={error}
+			hint="The share link may be incorrect, or the course may have been deleted."
+		>
+			{#snippet icon()}<CircleAlert size={20} />{/snippet}
+		</EmptyState>
+	</div>
 {:else}
 	<CourseViewer {title} />
 {/if}
 
 <style>
-	.loading,
-	.error {
+	.page-state {
 		display: flex;
 		align-items: center;
 		justify-content: center;
 		height: 100vh;
-		font-size: 18px;
-		color: #ccc;
-		background: #1a1a2e;
+		background: var(--bg-base);
 	}
 
-	.error {
-		color: #e94560;
+	.error :global(.icon) {
+		color: var(--danger);
+		opacity: 1;
 	}
 </style>

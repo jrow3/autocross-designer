@@ -1,5 +1,6 @@
 <script lang="ts">
 	import BaseDialog from './BaseDialog.svelte';
+	import Button from './ui/Button.svelte';
 
 	let {
 		pixelDistance,
@@ -44,7 +45,7 @@
 		</div>
 	{/snippet}
 	{#snippet actions()}
-		<button class="dialog-btn dialog-btn-cancel" onclick={oncancel}>Cancel</button>
-		<button class="dialog-btn dialog-btn-confirm" onclick={handleConfirm}>Calibrate</button>
+		<Button variant="secondary" onclick={oncancel}>Cancel</Button>
+		<Button variant="primary" onclick={handleConfirm}>Calibrate</Button>
 	{/snippet}
 </BaseDialog>

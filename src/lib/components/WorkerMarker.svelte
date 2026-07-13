@@ -92,9 +92,9 @@
 		numberSpan.textContent = worker.name ?? String(worker.number);
 		el.appendChild(numberSpan);
 
-		const wrapper = wrapForMapbox(el);
+		const wrapper = wrapForMapbox(mapStore.mode, el);
 
-		marker = createMarker({ element: wrapper, draggable: true })
+		marker = createMarker(mapStore.mode, { element: wrapper, draggable: true })
 			.setLngLat(worker.lngLat as [number, number])
 			.addTo(map);
 
@@ -138,7 +138,7 @@
 	:global(.worker-marker) {
 		width: 24px;
 		height: 24px;
-		background: #7c3aed;
+		background: var(--worker);
 		border: 2px solid #fff;
 		border-radius: 50%;
 		display: flex;
@@ -156,8 +156,8 @@
 	}
 
 	:global(.worker-context-menu) {
-		background: var(--bg-surface, #1e293b);
-		border: 1px solid var(--border, #334155);
+		background: var(--bg-surface);
+		border: 1px solid var(--border);
 		border-radius: 6px;
 		padding: 4px;
 		display: flex;
@@ -170,7 +170,7 @@
 		padding: 6px 12px;
 		background: none;
 		border: none;
-		color: var(--text-secondary, #cbd5e1);
+		color: var(--text-secondary);
 		font-size: 13px;
 		cursor: pointer;
 		text-align: left;
@@ -178,12 +178,12 @@
 	}
 
 	:global(.worker-context-menu button:hover) {
-		background: var(--bg-hover, #334155);
+		background: var(--bg-hover);
 	}
 
 	:global(.worker-rename-popup) {
-		background: var(--bg-surface, #1e293b);
-		border: 1px solid var(--border, #334155);
+		background: var(--bg-surface);
+		border: 1px solid var(--border);
 		border-radius: 6px;
 		padding: 8px;
 		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
@@ -191,10 +191,10 @@
 
 	:global(.worker-rename-popup input) {
 		padding: 4px 8px;
-		background: var(--bg-base, #0f172a);
-		border: 1px solid var(--border-focus, #3b82f6);
+		background: var(--bg-base);
+		border: 1px solid var(--border-focus);
 		border-radius: 4px;
-		color: var(--text-primary, #e2e8f0);
+		color: var(--text-primary);
 		font-size: 13px;
 		outline: none;
 		width: 120px;

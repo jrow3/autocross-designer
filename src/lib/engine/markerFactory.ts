@@ -1,17 +1,24 @@
 import mapboxgl from 'mapbox-gl';
-import { ImageMarker } from './imageMap';
-import { mapStore } from '$lib/stores/mapStore.svelte';
+import { ImageMarker, type ImageMap } from './imageMap';
 
 interface MarkerOptions {
 	element: HTMLElement;
 	draggable?: boolean;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export type AnyMarker = any;
+// Structural subset shared by mapboxgl.Marker and ImageMarker. A plain union is
+// uncallable here: addTo() on a union receiver demands mapboxgl.Map & ImageMap.
+export interface AnyMarker {
+	setLngLat(coords: [number, number] | { lng: number; lat: number }): AnyMarker;
+	getLngLat(): { lng: number; lat: number };
+	addTo(map: mapboxgl.Map | ImageMap): AnyMarker;
+	remove(): void;
+	on(event: string, cb: (e?: unknown) => void): AnyMarker;
+	getElement(): HTMLElement;
+}
 
-export function createMarker(opts: MarkerOptions): AnyMarker {
-	if (mapStore.mode === 'image') {
+export function createMarker(mode: 'map' | 'image', opts: MarkerOptions): AnyMarker {
+	if (mode === 'image') {
 		return new ImageMarker(opts);
 	}
 	return new mapboxgl.Marker(opts);
@@ -22,8 +29,8 @@ export function createMarker(opts: MarkerOptions): AnyMarker {
  * transform for positioning, while the inner element keeps its own CSS transform
  * (e.g. scale) without conflict.
  */
-export function wrapForMapbox(inner: HTMLElement): HTMLDivElement {
-	if (mapStore.mode === 'image') return inner as HTMLDivElement;
+export function wrapForMapbox(mode: 'map' | 'image', inner: HTMLElement): HTMLDivElement {
+	if (mode === 'image') return inner as HTMLDivElement;
 	const wrapper = document.createElement('div');
 	wrapper.style.cssText = 'cursor:pointer;';
 	wrapper.appendChild(inner);

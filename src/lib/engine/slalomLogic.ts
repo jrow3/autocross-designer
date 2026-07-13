@@ -1,5 +1,5 @@
 import type { LngLat } from '$lib/types/course';
-import { distanceFeet } from './distance';
+import { distanceFeet } from './geo';
 
 export interface SlalomConfig {
 	count: number;

@@ -12,7 +12,7 @@
 	{:else if tool === 'start-cone'}
 		<circle cx="8" cy="8" r="5.5" fill="var(--cone-start)" stroke="#fff" stroke-width="1.5" />
 	{:else if tool === 'finish-cone'}
-		<circle cx="8" cy="8" r="5.5" fill="#fff" stroke="#000" stroke-width="1.5" />
+		<circle cx="8" cy="8" r="5.5" fill="var(--cone-finish)" stroke="#000" stroke-width="1.5" />
 		<line x1="8" y1="2.5" x2="8" y2="13.5" stroke="#000" stroke-width="0.75" />
 		<line x1="2.5" y1="8" x2="13.5" y2="8" stroke="#000" stroke-width="0.75" />
 	{:else if tool === 'gate'}
@@ -33,17 +33,17 @@
 		<rect x="4" y="5" width="10" height="6" rx="1" fill="currentColor" />
 		<polygon points="4,7 1,8 4,9" fill="currentColor" />
 	{:else if tool === 'staging-area'}
-		<polygon points="2,12 5,3 14,4 13,13" stroke="#6495ED" stroke-width="1.5" stroke-dasharray="3 2" fill="#6495ED" fill-opacity="0.2" />
+		<polygon points="2,12 5,3 14,4 13,13" stroke="var(--staging)" stroke-width="1.5" stroke-dasharray="3 2" fill="var(--staging)" fill-opacity="0.2" />
 	{:else if tool === 'worker-zone'}
-		<polygon points="2,13 3,3 13,3 13,13" stroke="#ff6b6b" stroke-width="1.5" stroke-dasharray="3 2" fill="#ff6b6b" fill-opacity="0.15" />
-		<text x="8" y="10.5" text-anchor="middle" font-size="6" font-weight="bold" fill="#ff6b6b">1</text>
+		<polygon points="2,13 3,3 13,3 13,13" stroke="var(--worker-zone)" stroke-width="1.5" stroke-dasharray="3 2" fill="var(--worker-zone)" fill-opacity="0.15" />
+		<text x="8" y="10.5" text-anchor="middle" font-size="6" font-weight="bold" fill="var(--worker-zone)">1</text>
 	{:else if tool === 'hazard-point'}
-		<circle cx="8" cy="8" r="5" stroke="#e53e3e" stroke-width="1.5" fill="none" />
-		<circle cx="8" cy="8" r="2.5" fill="#e53e3e" />
+		<circle cx="8" cy="8" r="5" stroke="var(--hazard)" stroke-width="1.5" fill="none" />
+		<circle cx="8" cy="8" r="2.5" fill="var(--hazard)" />
 	{:else if tool === 'hazard-line'}
-		<line x1="3" y1="12" x2="13" y2="4" stroke="#e53e3e" stroke-width="2" />
-		<line x1="1" y1="9" x2="11" y2="1" stroke="#e53e3e" stroke-width="0.75" stroke-dasharray="2 2" opacity="0.6" />
-		<line x1="5" y1="15" x2="15" y2="7" stroke="#e53e3e" stroke-width="0.75" stroke-dasharray="2 2" opacity="0.6" />
+		<line x1="3" y1="12" x2="13" y2="4" stroke="var(--hazard)" stroke-width="2" />
+		<line x1="1" y1="9" x2="11" y2="1" stroke="var(--hazard)" stroke-width="0.75" stroke-dasharray="2 2" opacity="0.6" />
+		<line x1="5" y1="15" x2="15" y2="7" stroke="var(--hazard)" stroke-width="0.75" stroke-dasharray="2 2" opacity="0.6" />
 	{:else if tool === 'worker'}
 		<circle cx="8" cy="4.5" r="2.5" fill="var(--worker)" />
 		<path d="M3 14 Q3 9 8 9 Q13 9 13 14" fill="var(--worker)" />

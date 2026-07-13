@@ -12,19 +12,8 @@ function snapshot(): string {
 }
 
 function restore(json: string): void {
-	const data = JSON.parse(json) as CourseData;
-	course.cones = data.cones;
-	course.drivingLine = data.drivingLine;
-	course.measurements = data.measurements;
-	course.notes = data.notes;
-	course.obstacles = data.obstacles;
-	course.workers = data.workers;
-	course.courseOutline = data.courseOutline;
-	course.sketches = data.sketches;
-	course.stagingAreas = data.stagingAreas;
-	course.workerZones = data.workerZones;
-	course.hazardMarkers = data.hazardMarkers;
-	course.coneNumbers = data.coneNumbers;
+	// Snapshots are full stringifies of course, so every field is present
+	Object.assign(course, JSON.parse(json) as CourseData);
 }
 
 export const courseStore = {
@@ -89,16 +78,6 @@ export const courseStore = {
 
 	addObstacle(obstacle: ObstacleData): void {
 		course.obstacles.push(obstacle);
-	},
-
-	removeObstacle(id: string): void {
-		const idx = course.obstacles.findIndex((o) => o.id === id);
-		if (idx !== -1) course.obstacles.splice(idx, 1);
-	},
-
-	updateObstaclePosition(id: string, lngLat: LngLat): void {
-		const obs = course.obstacles.find((o) => o.id === id);
-		if (obs) obs.lngLat = lngLat;
 	},
 
 	addWorker(worker: WorkerData): void {
@@ -203,68 +182,52 @@ export const courseStore = {
 	},
 
 	addStagingArea(area: StagingAreaData): void {
-		this.pushUndo();
 		course.stagingAreas = [...course.stagingAreas, area];
 	},
 
 	removeStagingArea(id: string): void {
-		this.pushUndo();
 		course.stagingAreas = course.stagingAreas.filter((a) => a.id !== id);
 	},
 
-	updateStagingAreaVertices(id: string, vertices: LngLat[]): void {
-		this.pushUndo();
-		course.stagingAreas = course.stagingAreas.map((a) => a.id === id ? { ...a, vertices } : a);
-	},
-
 	addWorkerZone(zone: WorkerZoneData): void {
-		this.pushUndo();
 		course.workerZones = [...course.workerZones, zone];
 	},
 
 	removeWorkerZone(id: string): void {
-		this.pushUndo();
 		course.workerZones = course.workerZones.filter((z) => z.id !== id);
 	},
 
-	updateWorkerZoneVertices(id: string, vertices: LngLat[]): void {
-		this.pushUndo();
-		course.workerZones = course.workerZones.map((z) => z.id === id ? { ...z, vertices } : z);
-	},
-
-	updateWorkerZoneStation(id: string, stationNumber: number): void {
-		this.pushUndo();
-		course.workerZones = course.workerZones.map((z) => z.id === id ? { ...z, stationNumber } : z);
-	},
-
 	addHazardMarker(marker: HazardMarkerData): void {
-		this.pushUndo();
 		course.hazardMarkers = [...course.hazardMarkers, marker];
 	},
 
 	removeHazardMarker(id: string): void {
-		this.pushUndo();
 		course.hazardMarkers = course.hazardMarkers.filter((m) => m.id !== id);
 	},
 
-	updateHazardBuffer(id: string, bufferFeet: number): void {
-		this.pushUndo();
-		course.hazardMarkers = course.hazardMarkers.map((m) => m.id === id ? { ...m, bufferFeet } : m);
-	},
-
 	setConeNumbers(numbers: ConeNumberMap): void {
-		this.pushUndo();
 		course.coneNumbers = { ...numbers };
 	},
 
 	clearConeNumbers(): void {
-		this.pushUndo();
 		course.coneNumbers = {};
 	},
 
 	setMapView(center: LngLat, zoom: number): void {
 		course.mapCenter = center;
 		course.mapZoom = zoom;
+	},
+
+	applyVenue(venue: {
+		mapCenter: LngLat;
+		mapZoom: number;
+		hazardMarkers: HazardMarkerData[];
+		obstacles: ObstacleData[];
+	}): void {
+		course.mapCenter = venue.mapCenter;
+		course.mapZoom = venue.mapZoom;
+		course.hazardMarkers = [...venue.hazardMarkers];
+		course.obstacles = [...venue.obstacles];
 	},
 
 	load(data: CourseData): void {

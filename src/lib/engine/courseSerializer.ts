@@ -37,14 +37,6 @@ export function emptyCourse(): CourseData {
 	};
 }
 
-export function migrate(data: Record<string, unknown>): Record<string, unknown> {
-	if (!data || typeof data !== 'object') return data;
-	if (!data.schemaVersion) {
-		data.schemaVersion = 1;
-	}
-	return data;
-}
-
 export function validate(data: Record<string, unknown>): Record<string, unknown> {
 	if (data == null || typeof data !== 'object') return data;
 
@@ -88,7 +80,7 @@ export function deserialize(raw: unknown): CourseData {
 	if (typeof parsed === 'string') {
 		try { parsed = JSON.parse(parsed); } catch { parsed = {}; }
 	}
-	const data = validate(migrate(parsed as Record<string, unknown>));
+	const data = validate(parsed as Record<string, unknown>);
 	const empty = emptyCourse();
 	return {
 		...empty,

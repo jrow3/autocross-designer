@@ -47,7 +47,7 @@
 		const previewVerts = mousePos ? [...vertices, mousePos] : [...vertices];
 
 		try {
-			const fillSource = map.getSource(FILL_SOURCE);
+			const fillSource = map.getSource(FILL_SOURCE) as mapboxgl.GeoJSONSource | undefined;
 			if (fillSource) {
 				if (previewVerts.length >= 3) {
 					fillSource.setData(polygonToGeoJSON(previewVerts));
@@ -56,7 +56,7 @@
 				}
 			}
 
-			const lineSource = map.getSource(LINE_SOURCE);
+			const lineSource = map.getSource(LINE_SOURCE) as mapboxgl.GeoJSONSource | undefined;
 			if (lineSource) {
 				if (previewVerts.length >= 2) {
 					lineSource.setData(lineToGeoJSON(previewVerts));
@@ -65,7 +65,7 @@
 				}
 			}
 
-			const dotSource = map.getSource(DOT_SOURCE);
+			const dotSource = map.getSource(DOT_SOURCE) as mapboxgl.GeoJSONSource | undefined;
 			if (dotSource) {
 				dotSource.setData(verticesCollection(vertices));
 			}

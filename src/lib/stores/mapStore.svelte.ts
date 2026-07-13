@@ -1,5 +1,7 @@
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type MapInstance = any;
+import type mapboxgl from 'mapbox-gl';
+import type { ImageMap } from '$lib/engine/imageMap';
+
+export type MapInstance = mapboxgl.Map | ImageMap;
 
 let map = $state<MapInstance | null>(null);
 let mode = $state<'map' | 'image'>('map');

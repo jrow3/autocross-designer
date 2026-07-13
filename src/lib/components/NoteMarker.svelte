@@ -25,9 +25,9 @@
 		numberSpan.textContent = String(note.number);
 		el.appendChild(numberSpan);
 
-		const wrapper = wrapForMapbox(el);
+		const wrapper = wrapForMapbox(mapStore.mode, el);
 
-		marker = createMarker({ element: wrapper, draggable: true })
+		marker = createMarker(mapStore.mode, { element: wrapper, draggable: true })
 			.setLngLat(note.lngLat as [number, number])
 			.addTo(map);
 
@@ -67,7 +67,7 @@
 	:global(.note-marker) {
 		width: 22px;
 		height: 22px;
-		background: #0ea5e9;
+		background: var(--note);
 		border: 2px solid #fff;
 		border-radius: 50%;
 		display: flex;

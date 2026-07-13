@@ -21,22 +21,9 @@ export const TOOL_SHORTCUTS: Partial<Record<Tool, string>> = {
 	'hazard-line': 'j'
 };
 
-export const KEY_TOOL_MAP: Record<string, Tool> = {
-	'1': 'regular',
-	'2': 'pointer',
-	'3': 'start-cone',
-	'4': 'finish-cone',
-	'5': 'gate',
-	'6': 'slalom',
-	'7': 'drivingline',
-	'8': 'measure',
-	'9': 'note',
-	o: 'courseoutline',
-	t: 'trailer',
-	w: 'worker',
-	s: 'scale',
-	a: 'staging-area',
-	z: 'worker-zone',
-	h: 'hazard-point',
-	j: 'hazard-line'
-};
+// Single-character shortcuts only — 'Esc' (select) is handled explicitly in +layout.
+export const KEY_TOOL_MAP: Record<string, Tool> = Object.fromEntries(
+	(Object.entries(TOOL_SHORTCUTS) as [Tool, string][])
+		.filter(([, key]) => key.length === 1)
+		.map(([tool, key]) => [key.toLowerCase(), tool])
+);

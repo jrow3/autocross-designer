@@ -1,5 +1,6 @@
 import type { CourseData, LngLat } from '$lib/types/course';
 import { catmullRomSpline } from './catmullRom';
+import { coneColor, NOTE_COLOR, WORKER_COLOR } from './renderColors';
 
 interface Bounds {
 	minX: number; minY: number; maxX: number; maxY: number;
@@ -67,18 +68,14 @@ export function exportSVG(data: CourseData, title = ''): string {
 	for (const c of data.cones) {
 		const cx = tx(c.lngLat[0], b).toFixed(2);
 		const cy = ty(c.lngLat[1], b).toFixed(2);
-		let fill = '#f97316';
-		if (c.type === 'pointer') fill = '#ef4444';
-		else if (c.type === 'start-cone') fill = '#22c55e';
-		else if (c.type === 'finish-cone') fill = '#ffffff';
-		lines.push(`<circle cx="${cx}" cy="${cy}" r="4" fill="${fill}" stroke="#fff" stroke-width="1"/>`);
+		lines.push(`<circle cx="${cx}" cy="${cy}" r="4" fill="${coneColor(c.type)}" stroke="#fff" stroke-width="1"/>`);
 	}
 
 	// Workers
 	for (const w of data.workers) {
 		const wx = tx(w.lngLat[0], b).toFixed(2);
 		const wy = ty(w.lngLat[1], b).toFixed(2);
-		lines.push(`<circle cx="${wx}" cy="${wy}" r="8" fill="#7c3aed" stroke="#fff" stroke-width="1.5"/>`);
+		lines.push(`<circle cx="${wx}" cy="${wy}" r="8" fill="${WORKER_COLOR}" stroke="#fff" stroke-width="1.5"/>`);
 		lines.push(`<text x="${wx}" y="${wy}" text-anchor="middle" dominant-baseline="central" fill="#fff" font-size="8" font-weight="bold">${w.number}</text>`);
 	}
 
@@ -86,7 +83,7 @@ export function exportSVG(data: CourseData, title = ''): string {
 	for (const n of data.notes) {
 		const nx = tx(n.lngLat[0], b).toFixed(2);
 		const ny = ty(n.lngLat[1], b).toFixed(2);
-		lines.push(`<circle cx="${nx}" cy="${ny}" r="8" fill="#0ea5e9" stroke="#fff" stroke-width="1.5"/>`);
+		lines.push(`<circle cx="${nx}" cy="${ny}" r="8" fill="${NOTE_COLOR}" stroke="#fff" stroke-width="1.5"/>`);
 		lines.push(`<text x="${nx}" y="${ny}" text-anchor="middle" dominant-baseline="central" fill="#fff" font-size="8" font-weight="bold">${n.number}</text>`);
 	}
 

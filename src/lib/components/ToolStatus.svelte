@@ -1,9 +1,10 @@
 <script lang="ts">
 	import { toolStore } from '$lib/stores/toolStore.svelte';
+	import { TOOL_DEFS } from '$lib/config/tools';
 
-	const MULTI_STEP_TOOLS = ['gate', 'slalom', 'measure', 'courseoutline', 'scale'];
-
-	let isMultiStep = $derived(MULTI_STEP_TOOLS.includes(toolStore.activeTool));
+	let isMultiStep = $derived(
+		TOOL_DEFS.find((d) => d.tool === toolStore.activeTool)?.multiStep ?? false
+	);
 </script>
 
 {#if toolStore.statusMessage}
@@ -39,7 +40,7 @@
 		width: 8px;
 		height: 8px;
 		border-radius: 50%;
-		background: var(--accent-light, #3b82f6);
+		background: var(--accent-light);
 		animation: pulse 1.5s ease-in-out infinite;
 		flex-shrink: 0;
 	}

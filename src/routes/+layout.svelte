@@ -1,10 +1,12 @@
 <script lang="ts">
+	import '../app.css';
 	import favicon from '$lib/assets/favicon.svg';
 	import { toolStore } from '$lib/stores/toolStore.svelte';
 	import { courseStore } from '$lib/stores/courseStore.svelte';
 	import { selectionStore } from '$lib/stores/selectionStore.svelte';
 	import { mapStore } from '$lib/stores/mapStore.svelte';
 	import { KEY_TOOL_MAP } from '$lib/config/shortcuts';
+	import Toast from '$lib/components/ui/Toast.svelte';
 
 	let { children } = $props();
 
@@ -57,3 +59,4 @@
 </svelte:head>
 
 {@render children()}
+<Toast />

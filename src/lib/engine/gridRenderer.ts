@@ -9,10 +9,6 @@ interface GridConfig {
 	cellSizeM: number;
 }
 
-export function metersPerPixel(lat: number, zoom: number): number {
-	return (78271.517 * Math.cos(lat * Math.PI / 180)) / Math.pow(2, zoom);
-}
-
 export function drawGrid(ctx: CanvasRenderingContext2D, config: GridConfig): void {
 	const { anchorX, anchorY, rotationDeg, canvasWidth, canvasHeight, metersPerPixel: mpp, lineMode, cellSizeM } = config;
 

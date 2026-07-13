@@ -1,9 +1,12 @@
 <script lang="ts">
 	import { courseStore } from '$lib/stores/courseStore.svelte';
-	import { haversineFeet } from '$lib/engine/distance';
+	import { mapStore } from '$lib/stores/mapStore.svelte';
+	import { layerStore } from '$lib/stores/layerStore.svelte';
+	import { drivingLineLengthFeet } from '$lib/engine/courseStats';
 	import { captureMapCanvas, renderPrintCanvas, type PrintLayout } from '$lib/engine/printCapture';
-	import { jsPDF } from 'jspdf';
+	import { exportCoursePng, exportCoursePdf } from '$lib/services/printExport';
 	import BaseDialog from './BaseDialog.svelte';
+	import Button from './ui/Button.svelte';
 
 	let { onclose }: { onclose: () => void } = $props();
 
@@ -16,40 +19,39 @@
 	function coneCount(): number { return courseStore.course.cones.length; }
 
 	function lineLength(): string {
-		const wps = courseStore.course.drivingLine;
-		if (wps.length < 2) return '-- ft';
-		let total = 0;
-		for (let i = 1; i < wps.length; i++) total += haversineFeet(wps[i - 1].lngLat, wps[i].lngLat);
-		return `${total.toFixed(0)} ft`;
+		if (courseStore.course.drivingLine.length < 2) return '-- ft';
+		return `${drivingLineLengthFeet(courseStore.course).toFixed(0)} ft`;
+	}
+
+	function captureOptions() {
+		return {
+			map: mapStore.map,
+			mode: mapStore.mode,
+			course: courseStore.course,
+			mapFade: mapStore.mapFade,
+			markerSize: mapStore.markerSize,
+			isLayerVisible: (layer: 'cones' | 'workers' | 'notes') => layerStore.isVisible(layer)
+		};
+	}
+
+	async function renderCourseCanvas(): Promise<HTMLCanvasElement | null> {
+		const mapCanvas = await captureMapCanvas(captureOptions());
+		if (!mapCanvas) return null;
+		const layout: PrintLayout = { title, showConeCount, showLegend, showScaleBar };
+		return renderPrintCanvas(mapCanvas, layout, coneCount(), lineLength());
 	}
 
 	async function exportImage() {
 		exporting = true;
-		const mapCanvas = await captureMapCanvas();
-		if (!mapCanvas) { exporting = false; return; }
-		const layout: PrintLayout = { title, showConeCount, showLegend, showScaleBar };
-		const result = renderPrintCanvas(mapCanvas, layout, coneCount(), lineLength());
-		const link = document.createElement('a');
-		link.download = `${title || 'course'}.png`;
-		link.href = result.toDataURL('image/png');
-		link.click();
+		const canvas = await renderCourseCanvas();
+		if (canvas) exportCoursePng(canvas, title);
 		exporting = false;
 	}
 
 	async function exportPDF() {
 		exporting = true;
-		const mapCanvas = await captureMapCanvas();
-		if (!mapCanvas) { exporting = false; return; }
-		const layout: PrintLayout = { title, showConeCount, showLegend, showScaleBar };
-		const result = renderPrintCanvas(mapCanvas, layout, coneCount(), lineLength());
-		const imgData = result.toDataURL('image/png');
-		const pdf = new jsPDF({
-			orientation: result.width > result.height ? 'landscape' : 'portrait',
-			unit: 'px',
-			format: [result.width, result.height]
-		});
-		pdf.addImage(imgData, 'PNG', 0, 0, result.width, result.height);
-		pdf.save(`${title || 'course'}.pdf`);
+		const canvas = await renderCourseCanvas();
+		if (canvas) exportCoursePdf(canvas, title);
 		exporting = false;
 	}
 </script>
@@ -67,13 +69,13 @@
 		</div>
 	{/snippet}
 	{#snippet actions()}
-		<button class="dialog-btn dialog-btn-cancel" onclick={onclose}>Cancel</button>
-		<button class="dialog-btn dialog-btn-confirm" onclick={exportImage} disabled={exporting}>
+		<Button variant="secondary" onclick={onclose}>Cancel</Button>
+		<Button variant="primary" onclick={exportImage} disabled={exporting}>
 			{exporting ? 'Exporting...' : 'Save PNG'}
-		</button>
-		<button class="dialog-btn dialog-btn-confirm" onclick={exportPDF} disabled={exporting}>
+		</Button>
+		<Button variant="primary" onclick={exportPDF} disabled={exporting}>
 			{exporting ? 'Exporting...' : 'Save PDF'}
-		</button>
+		</Button>
 	{/snippet}
 </BaseDialog>
 

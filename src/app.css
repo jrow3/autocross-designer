@@ -1,0 +1,167 @@
+/*
+ * Design tokens — single source of truth for both routes (editor + viewer).
+ * Layer 1: primitive ramps (never referenced by components).
+ * Layer 2: semantic aliases (what components consume).
+ * A future light theme overrides Layer 2 under [data-theme="light"] only.
+ */
+
+:root {
+	/* Layer 1 — primitives */
+	--slate-950: #020617;
+	--slate-900: #0f172a;
+	--slate-800: #1e293b;
+	--slate-700: #334155;
+	--slate-600: #475569;
+	--slate-500: #64748b;
+	--slate-400: #94a3b8;
+	--slate-300: #cbd5e1;
+	--slate-200: #e2e8f0;
+	--blue-700: #1d4ed8;
+	--blue-600: #2563eb;
+	--blue-500: #3b82f6;
+	--blue-400: #60a5fa;
+	--green-600: #059669;
+	--green-700: #047857;
+	--red-500: #ef4444;
+	--red-600: #dc2626;
+	--amber-500: #f59e0b;
+}
+
+:root,
+[data-theme='dark'] {
+	/* Layer 2 — semantic (dark) */
+	--bg-base: var(--slate-900);
+	--bg-surface: var(--slate-800);
+	--bg-elevated: var(--slate-700);
+	--bg-hover: var(--slate-700);
+	--bg-overlay: rgba(15, 23, 42, 0.85);
+	--border-subtle: #26334a;
+	--border: var(--slate-700);
+	--border-focus: var(--blue-500);
+	--text-primary: var(--slate-200);
+	--text-secondary: var(--slate-300);
+	--text-muted: var(--slate-400);
+	--text-dim: var(--slate-500);
+	--accent: var(--blue-600);
+	--accent-hover: var(--blue-700);
+	--accent-light: var(--blue-500);
+	--success: var(--green-600);
+	--success-hover: var(--green-700);
+	--danger: var(--red-500);
+	--danger-hover: var(--red-600);
+	--warning: var(--amber-500);
+
+	/* Domain colors — flat across themes; must match physical course elements */
+	--cone-regular: #f97316;
+	--cone-pointer: #84cc16;
+	--cone-start: #22c55e;
+	--cone-finish: #fff;
+	--worker: #7c3aed;
+	--note: #0ea5e9;
+	--measure: #f472b6;
+	--driving-line: #60a5fa;
+	--staging: #6495ed;
+	--hazard: #e53e3e;
+	--worker-zone: #ff6b6b;
+
+	/* Type scale */
+	--font-ui: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+	--font-mono: ui-monospace, 'Cascadia Mono', 'Segoe UI Mono', monospace;
+	--text-xs: 11px;
+	--text-sm: 12px;
+	--text-md: 13px;
+	--text-base: 14px;
+	--text-lg: 16px;
+	--text-xl: 20px;
+	--text-2xl: 24px;
+
+	/* Spacing — 4px base */
+	--space-1: 4px;
+	--space-2: 8px;
+	--space-3: 12px;
+	--space-4: 16px;
+	--space-5: 20px;
+	--space-6: 24px;
+	--space-8: 32px;
+	--space-10: 40px;
+
+	/* Radii */
+	--radius-sm: 3px;
+	--radius-md: 6px;
+	--radius-lg: 10px;
+	--radius-full: 999px;
+
+	/* Shadows */
+	--shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.35);
+	--shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
+	--shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.5);
+
+	/* Z-index scale */
+	--z-map-ui: 10;
+	--z-selection: 50;
+	--z-menu: 80;
+	--z-dialog: 100;
+	--z-toast: 120;
+	--z-landing: 200;
+
+	/* Focus */
+	--focus-ring: 0 0 0 2px var(--bg-base), 0 0 0 4px var(--border-focus);
+}
+
+/* Reset */
+*,
+*::before,
+*::after {
+	box-sizing: border-box;
+	margin: 0;
+	padding: 0;
+}
+
+html,
+body {
+	height: 100%;
+	font-family: var(--font-ui);
+	background: var(--bg-base);
+	color: var(--text-primary);
+}
+
+:focus-visible {
+	outline: none;
+	box-shadow: var(--focus-ring);
+}
+
+/* Map interaction globals (used by imperative marker DOM) */
+.multi-selected {
+	filter: drop-shadow(0 0 4px rgba(59, 130, 246, 0.9));
+	outline: 2px solid var(--accent-light);
+	outline-offset: 2px;
+}
+
+.selection-box {
+	position: fixed;
+	border: 2px dashed var(--accent-light);
+	background: rgba(59, 130, 246, 0.1);
+	z-index: var(--z-selection);
+	pointer-events: none;
+}
+
+.ghost-marker {
+	opacity: 0.4;
+	pointer-events: none;
+	animation: ghost-fade 1s ease-in-out infinite;
+}
+
+@keyframes ghost-fade {
+	0%,
+	100% {
+		opacity: 0.4;
+	}
+	50% {
+		opacity: 0.2;
+	}
+}
+
+.mapboxgl-ctrl-bottom-left,
+.mapboxgl-ctrl-bottom-right {
+	z-index: 1;
+}

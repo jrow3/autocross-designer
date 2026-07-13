@@ -3,7 +3,9 @@
 	import { saveCourse, updateCourse, shareUrl } from '$lib/services/courseService';
 	import { isSupabaseConfigured } from '$lib/services/supabase';
 	import type { SavedCourse } from '$lib/services/courseService';
+	import { toastStore } from '$lib/stores/toastStore.svelte';
 	import BaseDialog from './BaseDialog.svelte';
+	import Button from './ui/Button.svelte';
 
 	let {
 		existingCourse = null,
@@ -34,6 +36,7 @@
 				onsaved?.({ ...existingCourse });
 			} else {
 				error = 'Failed to update course';
+				toastStore.error('Save failed — check your connection');
 			}
 			saving = false;
 		})();
@@ -52,6 +55,7 @@
 				onsaved?.({ ...existingCourse, title: trimmed });
 			} else {
 				error = 'Failed to update course';
+				toastStore.error('Save failed — check your connection');
 			}
 		} else {
 			const result = await saveCourse(trimmed, courseStore.course);
@@ -60,6 +64,7 @@
 				onsaved?.(result);
 			} else {
 				error = 'Failed to save course';
+				toastStore.error('Save failed — check your connection');
 			}
 		}
 		saving = false;
@@ -85,9 +90,9 @@
 		{:else if savedUrl}
 			<div class="url-row">
 				<input type="text" readonly value={savedUrl} class="url-input" />
-				<button class="dialog-btn dialog-btn-confirm" onclick={handleCopy}>
+				<Button variant="primary" onclick={handleCopy}>
 					{copied ? 'Copied!' : 'Copy'}
-				</button>
+				</Button>
 			</div>
 		{:else}
 			<div class="dialog-field">
@@ -101,12 +106,12 @@
 	{/snippet}
 	{#snippet actions()}
 		{#if !configured || savedUrl}
-			<button class="dialog-btn dialog-btn-cancel" onclick={onclose}>Close</button>
+			<Button variant="secondary" onclick={onclose}>Close</Button>
 		{:else}
-			<button class="dialog-btn dialog-btn-cancel" onclick={onclose}>Cancel</button>
-			<button class="dialog-btn dialog-btn-confirm" onclick={handleSave} disabled={saving || !title.trim()}>
+			<Button variant="secondary" onclick={onclose}>Cancel</Button>
+			<Button variant="primary" onclick={handleSave} disabled={saving || !title.trim()}>
 				{saving ? 'Saving...' : existingCourse ? 'Update' : 'Save & Share'}
-			</button>
+			</Button>
 		{/if}
 	{/snippet}
 </BaseDialog>

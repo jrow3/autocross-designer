@@ -1,9 +1,10 @@
 <script lang="ts">
 	import type { LngLat } from '$lib/types/course';
-	import { distanceFeet } from '$lib/engine/distance';
+	import { distanceFeet } from '$lib/engine/geo';
 	import { mapStore } from '$lib/stores/mapStore.svelte';
 	import { toolStore } from '$lib/stores/toolStore.svelte';
 	import BaseDialog from './BaseDialog.svelte';
+	import Button from './ui/Button.svelte';
 
 	let {
 		start,
@@ -101,7 +102,7 @@
 		{/if}
 	{/snippet}
 	{#snippet actions()}
-		<button class="dialog-btn dialog-btn-cancel" onclick={oncancel}>Cancel</button>
-		<button class="dialog-btn dialog-btn-confirm" onclick={handleConfirm}>Place Cones</button>
+		<Button variant="secondary" onclick={oncancel}>Cancel</Button>
+		<Button variant="primary" onclick={handleConfirm}>Place Cones</Button>
 	{/snippet}
 </BaseDialog>

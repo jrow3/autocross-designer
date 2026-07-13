@@ -1,5 +1,5 @@
 import type { LngLat, ConeData } from '$lib/types/course';
-import { feetToLngLatOffset, feetToPixelOffset } from './distance';
+import { feetToLngLatOffset, feetToPixelOffset } from './geo';
 
 export function findNearestRegularCone(lngLat: LngLat, cones: ConeData[]): ConeData | null {
 	let nearest: ConeData | null = null;

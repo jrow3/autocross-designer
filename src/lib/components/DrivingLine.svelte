@@ -42,9 +42,9 @@
 		const map = mapStore.map!;
 		const el = document.createElement('div');
 		el.className = 'waypoint-marker';
-		const wrapper = wrapForMapbox(el);
+		const wrapper = wrapForMapbox(mapStore.mode, el);
 
-		const marker = createMarker({ element: wrapper, draggable: true })
+		const marker = createMarker(mapStore.mode, { element: wrapper, draggable: true })
 			.setLngLat(lngLat as [number, number])
 			.addTo(map);
 

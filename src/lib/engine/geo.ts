@@ -1,7 +1,12 @@
 import type { LngLat } from '$lib/types/course';
 
-const EARTH_RADIUS_M = 6371000;
-const METERS_TO_FEET = 3.28084;
+// Single earth model for all geodesy. Mean earth radius (spherical approximation).
+export const EARTH_RADIUS_M = 6371000;
+export const FEET_PER_METER = 1 / 0.3048;
+
+// Web-Mercator meters-per-pixel at zoom 0 on a 512px tile (40075016.686 / 512).
+// A tile-math constant, not an alternate earth model — only for screen-pixel conversions.
+const WEB_MERCATOR_M_PER_PX_Z0 = 78271.517;
 
 function toRad(deg: number): number {
 	return deg * Math.PI / 180;
@@ -19,10 +24,10 @@ export function haversineMeters(a: LngLat, b: LngLat): number {
 }
 
 export function haversineFeet(a: LngLat, b: LngLat): number {
-	return haversineMeters(a, b) * METERS_TO_FEET;
+	return haversineMeters(a, b) * FEET_PER_METER;
 }
 
-export function pixelDistFeet(a: LngLat, b: LngLat, feetPerPixel: number): number {
+function pixelDistFeet(a: LngLat, b: LngLat, feetPerPixel: number): number {
 	const dx = a[0] - b[0];
 	const dy = a[1] - b[1];
 	return Math.sqrt(dx * dx + dy * dy) * feetPerPixel;
@@ -41,18 +46,30 @@ export function distanceFeet(
 	return haversineFeet(a, b);
 }
 
-const FEET_TO_METERS = 1 / METERS_TO_FEET;
+export function metersPerDegLat(): number {
+	return (EARTH_RADIUS_M * Math.PI) / 180;
+}
+
+export function metersPerDegLng(lat: number): number {
+	return metersPerDegLat() * Math.cos(toRad(lat));
+}
+
+export function feetToDegreesLat(feet: number): number {
+	return (feet / FEET_PER_METER) / metersPerDegLat();
+}
+
+export function feetToDegreesLng(feet: number, lat: number): number {
+	return (feet / FEET_PER_METER) / metersPerDegLng(lat);
+}
 
 export function feetToLngLatOffset(
 	origin: LngLat,
 	angleDeg: number,
 	feet: number
 ): LngLat {
-	const meters = feet * FEET_TO_METERS;
-	const angleRad = angleDeg * Math.PI / 180;
-	const dLat = (meters * Math.cos(angleRad)) / EARTH_RADIUS_M * (180 / Math.PI);
-	const cosLat = Math.cos(origin[1] * Math.PI / 180);
-	const dLng = (meters * Math.sin(angleRad)) / (EARTH_RADIUS_M * cosLat) * (180 / Math.PI);
+	const angleRad = toRad(angleDeg);
+	const dLat = feetToDegreesLat(feet * Math.cos(angleRad));
+	const dLng = feetToDegreesLng(feet * Math.sin(angleRad), origin[1]);
 	return [origin[0] + dLng, origin[1] + dLat];
 }
 
@@ -63,6 +80,10 @@ export function feetToPixelOffset(
 	feetPerPixel: number
 ): LngLat {
 	const pixels = feet / feetPerPixel;
-	const angleRad = angleDeg * Math.PI / 180;
+	const angleRad = toRad(angleDeg);
 	return [origin[0] + pixels * Math.sin(angleRad), origin[1] - pixels * Math.cos(angleRad)];
+}
+
+export function metersPerPixel(lat: number, zoom: number): number {
+	return (WEB_MERCATOR_M_PER_PX_Z0 * Math.cos(toRad(lat))) / Math.pow(2, zoom);
 }

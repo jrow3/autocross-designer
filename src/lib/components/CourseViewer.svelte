@@ -6,6 +6,9 @@
 	import { courseStore } from '$lib/stores/courseStore.svelte';
 	import { layerStore } from '$lib/stores/layerStore.svelte';
 	import { saveLocal } from '$lib/services/courseService';
+	import { setEditCopyHandoff, setFitCourseOnLoad, setSkipBanner } from '$lib/services/handoff';
+	import Copy from '@lucide/svelte/icons/copy';
+	import Button from './ui/Button.svelte';
 	import ConeMarker from './ConeMarker.svelte';
 	import WorkerMarker from './WorkerMarker.svelte';
 	import NoteMarker from './NoteMarker.svelte';
@@ -29,13 +32,13 @@
 		{ key: 'courseOutline' as const, label: 'Course Outline' },
 		{ key: 'stagingAreas' as const, label: 'Staging Areas' },
 		{ key: 'workerZones' as const, label: 'Worker Zones' },
-		{ key: 'safetyZones' as const, label: 'Safety Zones' }
+		{ key: 'hazardMarkers' as const, label: 'Safety Zones' }
 	];
 
 	function editCopy() {
-		sessionStorage.setItem('editCopyCourse', JSON.stringify(courseStore.course));
-		sessionStorage.setItem('fitCourseOnLoad', 'true');
-		sessionStorage.setItem('skipBanner', 'true');
+		setEditCopyHandoff(courseStore.course);
+		setFitCourseOnLoad();
+		setSkipBanner();
 		window.location.href = '/';
 	}
 
@@ -91,20 +94,26 @@
 
 	<div class="course-title">{title}</div>
 
-	<div class="layer-toggles">
+	<div class="layer-toggles" role="group" aria-label="Map layers">
+		<span class="layers-heading">Layers</span>
 		{#each toggleableLayers as layer}
-			<label>
+			<label class="layer-toggle">
 				<input
 					type="checkbox"
 					checked={layerStore.isVisible(layer.key)}
 					onchange={() => layerStore.toggle(layer.key)}
 				/>
-				{layer.label}
+				<span>{layer.label}</span>
 			</label>
 		{/each}
 	</div>
 
-	<button class="edit-copy-btn" onclick={editCopy}>Edit a Copy</button>
+	<div class="edit-copy">
+		<Button variant="primary" onclick={editCopy} title="Open this course in the editor as your own copy">
+			<Copy size={14} />
+			Edit a Copy
+		</Button>
+	</div>
 
 	{#if mapStore.map}
 		{#if layerStore.isVisible('cones')}
@@ -137,7 +146,7 @@
 		{#if layerStore.isVisible('workerZones')}
 			<WorkerZoneOverlay />
 		{/if}
-		{#if layerStore.isVisible('safetyZones')}
+		{#if layerStore.isVisible('hazardMarkers')}
 			<HazardOverlay />
 		{/if}
 	{/if}
@@ -158,53 +167,62 @@
 
 	.course-title {
 		position: absolute;
-		top: 10px;
+		top: var(--space-3);
 		left: 50px;
-		background: rgba(0, 0, 0, 0.7);
-		color: #eee;
-		border-radius: 6px;
-		padding: 6px 12px;
-		z-index: 1;
+		background: var(--bg-overlay);
+		border: 1px solid var(--border);
+		color: var(--text-primary);
+		font-size: var(--text-base);
+		font-weight: 600;
+		border-radius: var(--radius-md);
+		padding: var(--space-2) var(--space-3);
+		box-shadow: var(--shadow-md);
+		z-index: var(--z-map-ui);
 	}
 
 	.layer-toggles {
 		position: absolute;
-		top: 10px;
-		right: 10px;
-		background: rgba(0, 0, 0, 0.7);
-		border-radius: 6px;
-		padding: 8px 12px;
-		font-size: 12px;
-		color: #eee;
+		top: var(--space-3);
+		right: var(--space-3);
+		background: var(--bg-overlay);
+		border: 1px solid var(--border);
+		border-radius: var(--radius-lg);
+		padding: var(--space-3);
+		box-shadow: var(--shadow-md);
 		display: flex;
 		flex-direction: column;
-		gap: 4px;
-		z-index: 1;
+		gap: var(--space-1);
+		z-index: var(--z-map-ui);
 	}
 
-	.layer-toggles label {
+	.layers-heading {
+		font-size: var(--text-xs);
+		font-weight: 600;
+		text-transform: uppercase;
+		letter-spacing: 0.05em;
+		color: var(--text-muted);
+		margin-bottom: var(--space-1);
+	}
+
+	.layer-toggle {
 		display: flex;
 		align-items: center;
-		gap: 6px;
+		gap: var(--space-2);
+		font-size: var(--text-sm);
+		color: var(--text-secondary);
 		cursor: pointer;
 	}
 
-	.edit-copy-btn {
+	.layer-toggle input {
+		width: 14px;
+		height: 14px;
+		accent-color: var(--accent);
+	}
+
+	.edit-copy {
 		position: absolute;
-		bottom: 20px;
-		right: 20px;
-		background: #e94560;
-		color: white;
-		border: none;
-		padding: 10px 20px;
-		border-radius: 6px;
-		font-size: 14px;
-		font-weight: bold;
-		cursor: pointer;
-		z-index: 1;
-	}
-
-	.edit-copy-btn:hover {
-		background: #d63851;
+		bottom: var(--space-5);
+		right: var(--space-5);
+		z-index: var(--z-map-ui);
 	}
 </style>

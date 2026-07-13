@@ -1,18 +1,5 @@
 import type { LngLat } from '$lib/types/course';
-
-const EARTH_RADIUS_M = 6371000;
-const FT_PER_M = 0.3048;
-
-function feetToDegreesLat(feet: number): number {
-	const meters = feet * FT_PER_M;
-	return (meters / EARTH_RADIUS_M) * (180 / Math.PI);
-}
-
-function feetToDegreesLng(feet: number, lat: number): number {
-	const meters = feet * FT_PER_M;
-	const latRad = (lat * Math.PI) / 180;
-	return (meters / (EARTH_RADIUS_M * Math.cos(latRad))) * (180 / Math.PI);
-}
+import { feetToDegreesLat, feetToDegreesLng } from './geo';
 
 export function pointBuffer(center: LngLat, bufferFeet: number, segments = 32): LngLat[] {
 	const dlat = feetToDegreesLat(bufferFeet);

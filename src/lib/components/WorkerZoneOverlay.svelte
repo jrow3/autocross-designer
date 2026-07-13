@@ -2,16 +2,12 @@
 	import { onMount, onDestroy } from 'svelte';
 	import { mapStore } from '$lib/stores/mapStore.svelte';
 	import { courseStore } from '$lib/stores/courseStore.svelte';
+	import { ZONE_COLORS } from '$lib/config/palette';
 
 	const SOURCE_ID = 'worker-zones-source';
 	const FILL_LAYER = 'worker-zones-fill';
 	const LINE_LAYER = 'worker-zones-line';
 	const LABEL_LAYER = 'worker-zones-label';
-
-	const ZONE_COLORS = [
-		'#ff6b6b', '#4ecdc4', '#a882ff', '#ffd93d', '#6bcb77',
-		'#ff8fab', '#4cc9f0', '#f4a261', '#90be6d', '#c77dff'
-	];
 
 	function colorForStation(n: number): string {
 		return ZONE_COLORS[(n - 1) % ZONE_COLORS.length];

@@ -26,7 +26,7 @@
 			const map = mapStore.map!;
 			const el = document.createElement('div');
 			el.className = 'outline-endpoint';
-			pendingMarker = createMarker({ element: el })
+			pendingMarker = createMarker(mapStore.mode, { element: el })
 				.setLngLat(lngLat as [number, number])
 				.addTo(map);
 		} else {
@@ -61,12 +61,12 @@
 		svg.appendChild(path);
 		svgContainer.appendChild(svg);
 
-		function createEndpoint(endpoint: 0 | 1): mapboxgl.Marker {
+		function createEndpoint(endpoint: 0 | 1): AnyMarker {
 			const seg = courseStore.course.courseOutline[index];
 			const pos = endpoint === 0 ? seg.p1 : seg.p2;
 			const el = document.createElement('div');
 			el.className = 'outline-endpoint';
-			const marker = createMarker({ element: el, draggable: true })
+			const marker = createMarker(mapStore.mode, { element: el, draggable: true })
 				.setLngLat(pos as [number, number])
 				.addTo(map);
 
@@ -88,11 +88,11 @@
 			return marker;
 		}
 
-		function createControlMarker(): mapboxgl.Marker {
+		function createControlMarker(): AnyMarker {
 			const seg = courseStore.course.courseOutline[index];
 			const el = document.createElement('div');
 			el.className = 'outline-control';
-			const marker = createMarker({ element: el, draggable: true })
+			const marker = createMarker(mapStore.mode, { element: el, draggable: true })
 				.setLngLat(seg.cp as [number, number])
 				.addTo(map);
 
@@ -107,7 +107,7 @@
 			return marker;
 		}
 
-		const markers: [mapboxgl.Marker, mapboxgl.Marker, mapboxgl.Marker] = [
+		const markers: [AnyMarker, AnyMarker, AnyMarker] = [
 			createEndpoint(0),
 			createEndpoint(1),
 			createControlMarker()

@@ -1,7 +1,8 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { mapStore } from '$lib/stores/mapStore.svelte';
-	import { drawGrid, metersPerPixel } from '$lib/engine/gridRenderer';
+	import { drawGrid } from '$lib/engine/gridRenderer';
+	import { metersPerPixel } from '$lib/engine/geo';
 
 	let anchorLngLat: [number, number] | null = null;
 	let canvas: HTMLCanvasElement;

@@ -9,7 +9,7 @@ export type LayerKey =
 	| 'grid'
 	| 'stagingAreas'
 	| 'workerZones'
-	| 'safetyZones'
+	| 'hazardMarkers'
 	| 'coneNumbers';
 
 export interface Layer {
@@ -27,10 +27,10 @@ const layers = $state<Layer[]>([
 	{ key: 'courseOutline', label: 'Course Outline', visible: true },
 	{ key: 'sketches', label: 'Sketches', visible: true },
 	{ key: 'grid', label: 'Grid', visible: true },
-	{ key: 'stagingAreas' as LayerKey, label: 'Staging Areas', visible: true },
-	{ key: 'workerZones' as LayerKey, label: 'Worker Zones', visible: true },
-	{ key: 'safetyZones' as LayerKey, label: 'Safety Zones', visible: true },
-	{ key: 'coneNumbers' as LayerKey, label: 'Cone Numbers', visible: false }
+	{ key: 'stagingAreas', label: 'Staging Areas', visible: true },
+	{ key: 'workerZones', label: 'Worker Zones', visible: true },
+	{ key: 'hazardMarkers', label: 'Safety Zones', visible: true },
+	{ key: 'coneNumbers', label: 'Cone Numbers', visible: false }
 ]);
 
 export const layerStore = {

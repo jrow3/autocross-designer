@@ -1,25 +1,18 @@
 <script lang="ts">
 	import { courseStore } from '$lib/stores/courseStore.svelte';
 	import { mapStore } from '$lib/stores/mapStore.svelte';
+	import { deleteVenue, loadVenues, saveVenues } from '$lib/services/courseService';
 	import type { VenueData } from '$lib/types/course';
-	import type mapboxgl from 'mapbox-gl';
-
-	const STORAGE_KEY = 'autocross-venues';
+	import SectionHeader from './ui/SectionHeader.svelte';
+	import EmptyState from './ui/EmptyState.svelte';
+	import Button from './ui/Button.svelte';
+	import SharedVenues from './SharedVenues.svelte';
+	import { tooltip } from './ui/tooltip';
+	import Save from '@lucide/svelte/icons/save';
+	import Trash2 from '@lucide/svelte/icons/trash-2';
 
 	let venues = $state<Record<string, VenueData>>(loadVenues());
 	let newName = $state('');
-
-	function loadVenues(): Record<string, VenueData> {
-		try {
-			return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
-		} catch {
-			return {};
-		}
-	}
-
-	function saveVenues() {
-		localStorage.setItem(STORAGE_KEY, JSON.stringify(venues));
-	}
 
 	function saveCurrentVenue() {
 		const name = newName.trim();
@@ -31,7 +24,7 @@
 			mode: 'map',
 			imageFileName: courseStore.course.imageFileName ?? null
 		};
-		saveVenues();
+		saveVenues(venues);
 		newName = '';
 	}
 
@@ -44,43 +37,59 @@
 		}
 		const map = mapStore.map;
 		if (map && 'flyTo' in map) {
-			(map as mapboxgl.Map).flyTo({ center: v.mapCenter, zoom: v.mapZoom });
+			map.flyTo({ center: v.mapCenter, zoom: v.mapZoom });
 		}
 		courseStore.setMapView(v.mapCenter, v.mapZoom);
 	}
 
-	function deleteVenue(name: string) {
+	function removeVenue(name: string) {
 		delete venues[name];
 		venues = { ...venues };
-		saveVenues();
+		deleteVenue(name);
 	}
 </script>
 
+<SharedVenues />
+
 <section>
-	<h3>Venues</h3>
+	<SectionHeader title="Venues" count={Object.keys(venues).length} />
 	<div class="venue-save">
 		<input
 			type="text"
 			bind:value={newName}
 			placeholder="Venue name..."
+			aria-label="Venue name"
 			onkeydown={(e) => e.key === 'Enter' && saveCurrentVenue()}
 		/>
-		<button class="venue-save-btn" onclick={saveCurrentVenue} disabled={!newName.trim()} title="Save venue">
-			<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-				<path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
-				<polyline points="17 21 17 13 7 13 7 21"/>
-				<polyline points="7 3 7 8 15 8"/>
-			</svg>
-		</button>
+		<span class="tip-host" use:tooltip={{ text: 'Save the current map view as a venue' }}>
+			<Button
+				variant="secondary"
+				size="sm"
+				icon
+				label="Save venue"
+				disabled={!newName.trim()}
+				onclick={saveCurrentVenue}
+			>
+				<Save size={14} />
+			</Button>
+		</span>
 	</div>
 	{#if Object.keys(venues).length === 0}
-		<div class="empty-text">No saved venues</div>
+		<EmptyState message="No saved venues" hint="Name your lot to jump back to it later" />
 	{:else}
 		<div class="venue-list">
-			{#each Object.keys(venues) as name}
+			{#each Object.keys(venues) as name (name)}
 				<div class="venue-item">
 					<button class="venue-load" onclick={() => loadVenue(name)}>{name}</button>
-					<button class="venue-delete" onclick={() => deleteVenue(name)} title="Delete">&times;</button>
+					<Button
+						variant="ghost"
+						size="sm"
+						icon
+						label={`Delete venue "${name}"`}
+						onclick={() => removeVenue(name)}
+					>
+						<Trash2 size={14} />
+					</Button>
 				</div>
 			{/each}
 		</div>
@@ -88,99 +97,68 @@
 </section>
 
 <style>
-	h3 {
-		font-size: 11px;
-		font-weight: 600;
-		text-transform: uppercase;
-		color: #64748b;
-		letter-spacing: 0.05em;
-		margin-bottom: 6px;
+	section {
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-2);
+		margin-bottom: var(--space-4);
 	}
 
 	.venue-save {
 		display: flex;
-		gap: 4px;
-		margin-bottom: 8px;
+		gap: var(--space-1);
 	}
 
 	.venue-save input {
 		flex: 1;
-		padding: 3px 6px;
-		background: #0f172a;
-		border: 1px solid #334155;
-		border-radius: 3px;
-		color: #e2e8f0;
-		font-size: 12px;
+		min-width: 0;
+		padding: 3px var(--space-2);
+		background: var(--bg-base);
+		border: 1px solid var(--border);
+		border-radius: var(--radius-sm);
+		color: var(--text-primary);
+		font-size: var(--text-sm);
 		outline: none;
-		height: 24px;
 	}
 
 	.venue-save input:focus {
-		border-color: #3b82f6;
+		border-color: var(--border-focus);
 	}
 
-	.venue-save-btn {
-		padding: 3px 6px;
-		background: #1e293b;
-		border: 1px solid #334155;
-		border-radius: 3px;
-		color: #cbd5e1;
-		cursor: pointer;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		width: 24px;
-		height: 24px;
-		flex-shrink: 0;
-	}
-
-	.venue-save-btn:disabled {
-		opacity: 0.4;
-		cursor: not-allowed;
-	}
-
-	.empty-text {
-		font-size: 12px;
-		color: rgba(255, 255, 255, 0.4);
+	.tip-host {
+		display: inline-flex;
 	}
 
 	.venue-list {
 		display: flex;
 		flex-direction: column;
-		gap: 4px;
+		gap: var(--space-1);
 	}
 
 	.venue-item {
 		display: flex;
-		gap: 4px;
+		align-items: center;
+		gap: var(--space-1);
 	}
 
 	.venue-load {
 		flex: 1;
-		padding: 6px 8px;
-		background: rgba(255, 255, 255, 0.08);
+		min-width: 0;
+		padding: var(--space-1) var(--space-2);
+		background: var(--bg-surface);
 		border: none;
-		border-radius: 4px;
-		color: #cbd5e1;
-		font-size: 13px;
+		border-radius: var(--radius-md);
+		color: var(--text-secondary);
+		font-size: var(--text-md);
 		cursor: pointer;
 		text-align: left;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
 	}
 
 	.venue-load:hover {
-		background: rgba(59, 130, 246, 0.2);
-	}
-
-	.venue-delete {
-		padding: 4px 8px;
-		background: none;
-		border: none;
-		color: #64748b;
-		cursor: pointer;
-		font-size: 16px;
-	}
-
-	.venue-delete:hover {
-		color: #ef4444;
+		background: var(--bg-hover);
+		color: var(--text-primary);
 	}
 </style>

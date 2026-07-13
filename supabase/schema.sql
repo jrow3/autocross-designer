@@ -57,3 +57,51 @@ $$ language plpgsql;
 create trigger courses_updated_at
   before update on courses
   for each row execute function update_updated_at();
+
+-- ============================================================
+-- Shared venues — run in SQL editor
+-- Venue presets (hazard markers + obstacles per location) that
+-- everyone can load; only the shared ops login can write.
+--
+-- Setup: create the shared ops user in Dashboard -> Authentication
+-- -> Add user (email + password), then disable public signups in
+-- Auth settings so no one else can become "authenticated".
+-- ============================================================
+
+create table if not exists shared_venues (
+  id uuid primary key default gen_random_uuid(),
+  name text not null unique,
+  map_center jsonb not null,
+  map_zoom numeric not null,
+  hazard_markers jsonb not null default '[]'::jsonb,
+  obstacles jsonb not null default '[]'::jsonb,
+  updated_at timestamptz default now()
+);
+
+alter table shared_venues enable row level security;
+
+-- Everyone (signed in or not) can read shared venues
+create policy "Shared venues are readable by anyone"
+  on shared_venues for select
+  to anon, authenticated
+  using (true);
+
+-- Only the shared ops login (authenticated) can write
+create policy "Ops can insert shared venues"
+  on shared_venues for insert
+  to authenticated
+  with check (true);
+
+create policy "Ops can update shared venues"
+  on shared_venues for update
+  to authenticated
+  using (true);
+
+create policy "Ops can delete shared venues"
+  on shared_venues for delete
+  to authenticated
+  using (true);
+
+create trigger shared_venues_updated_at
+  before update on shared_venues
+  for each row execute function update_updated_at();

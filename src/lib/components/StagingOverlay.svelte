@@ -2,6 +2,7 @@
 	import { onMount, onDestroy } from 'svelte';
 	import { mapStore } from '$lib/stores/mapStore.svelte';
 	import { courseStore } from '$lib/stores/courseStore.svelte';
+	import { STAGING_COLOR } from '$lib/config/palette';
 
 	const SOURCE_ID = 'staging-areas-source';
 	const FILL_LAYER = 'staging-areas-fill';
@@ -51,7 +52,7 @@
 			type: 'fill',
 			source: SOURCE_ID,
 			paint: {
-				'fill-color': '#6495ED',
+				'fill-color': STAGING_COLOR,
 				'fill-opacity': 0.25
 			}
 		});
@@ -61,7 +62,7 @@
 			type: 'line',
 			source: SOURCE_ID,
 			paint: {
-				'line-color': '#6495ED',
+				'line-color': STAGING_COLOR,
 				'line-width': 2
 			}
 		});
@@ -76,7 +77,7 @@
 				'text-size': 14
 			},
 			paint: {
-				'text-color': '#6495ED',
+				'text-color': STAGING_COLOR,
 				'text-halo-color': '#000000',
 				'text-halo-width': 1.5
 			}

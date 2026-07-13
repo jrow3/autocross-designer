@@ -1,33 +1,26 @@
 <script lang="ts">
-	import { toolStore, type Tool } from '$lib/stores/toolStore.svelte';
+	import { toolStore } from '$lib/stores/toolStore.svelte';
 	import { TOOL_SHORTCUTS } from '$lib/config/shortcuts';
+	import type { ToolDef } from '$lib/config/tools';
+	import { tooltip } from './ui/tooltip';
 	import ToolIcon from './ToolIcon.svelte';
 
-	let {
-		tool,
-		label,
-		title
-	}: {
-		tool: Tool;
-		label: string;
-		title: string;
-	} = $props();
+	let { def }: { def: ToolDef } = $props();
 
-	const shortcut = TOOL_SHORTCUTS[tool];
+	const shortcut = TOOL_SHORTCUTS[def.tool];
 
-	function handleClick() {
-		toolStore.setTool(tool);
-	}
+	let active = $derived(toolStore.activeTool === def.tool);
 </script>
 
 <button
 	class="tool-btn"
-	class:active={toolStore.activeTool === tool}
-	{title}
-	onclick={handleClick}
+	class:active
+	aria-pressed={active}
+	use:tooltip={{ text: def.description, shortcut, placement: 'right' }}
+	onclick={() => toolStore.setTool(def.tool)}
 >
-	<ToolIcon {tool} />
-	<span class="tool-label">{label}</span>
+	<ToolIcon tool={def.tool} />
+	<span class="tool-label">{def.label}</span>
 	{#if shortcut}
 		<span class="shortcut-hint">{shortcut}</span>
 	{/if}
@@ -37,26 +30,29 @@
 	.tool-btn {
 		display: flex;
 		align-items: center;
-		gap: 6px;
+		gap: var(--space-2);
 		width: 100%;
-		padding: 5px 8px;
+		padding: var(--space-1) var(--space-2);
 		background: var(--bg-surface);
 		color: var(--text-secondary);
-		border: 1px solid var(--border);
-		border-radius: 4px;
+		border: none;
+		border-radius: var(--radius-md);
+		box-shadow: inset 2px 0 0 transparent;
 		cursor: pointer;
-		font-size: 13px;
+		font-family: var(--font-ui);
+		font-size: var(--text-md);
 		text-align: left;
-		transition: background 0.15s, border-color 0.15s;
+		transition: background 0.12s ease, box-shadow 0.12s ease, color 0.12s ease;
 	}
 
 	.tool-btn:hover {
 		background: var(--bg-hover);
+		color: var(--text-primary);
 	}
 
 	.tool-btn.active {
 		background: var(--accent);
-		border-color: var(--accent-light);
+		box-shadow: inset 2px 0 0 var(--accent-light);
 		color: #fff;
 	}
 
@@ -65,18 +61,18 @@
 	}
 
 	.shortcut-hint {
-		font-size: 10px;
+		font-family: var(--font-mono);
+		font-size: var(--text-xs);
 		color: var(--text-dim);
 		background: var(--bg-base);
-		padding: 1px 4px;
-		border-radius: 2px;
+		padding: 1px var(--space-1);
+		border-radius: var(--radius-sm);
 		min-width: 16px;
 		text-align: center;
-		font-family: monospace;
 	}
 
 	.tool-btn.active .shortcut-hint {
-		background: rgba(0, 0, 0, 0.2);
-		color: rgba(255, 255, 255, 0.7);
+		background: rgba(0, 0, 0, 0.25);
+		color: rgba(255, 255, 255, 0.75);
 	}
 </style>

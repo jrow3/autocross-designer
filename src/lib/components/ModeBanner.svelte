@@ -1,4 +1,9 @@
 <script lang="ts">
+	import Map from '@lucide/svelte/icons/map';
+	import Image from '@lucide/svelte/icons/image';
+	import Plus from '@lucide/svelte/icons/plus';
+	import Button from './ui/Button.svelte';
+
 	let {
 		onselect
 	}: {
@@ -42,37 +47,45 @@
 	}
 </script>
 
-<div class="banner-overlay">
+<div class="landing-overlay">
 	{#if !showGallery}
-		<div class="mode-choices">
-			<h1 class="banner-title">Autocross Course Designer</h1>
-			<div class="banner-buttons">
-				<button class="mode-btn" onclick={selectMap}>
-					<span class="mode-icon">🗺️</span>
-					Draw on Live Map
+		<div class="landing">
+			<h1 class="landing-title">Autocross Course Designer</h1>
+			<p class="landing-tagline">Lay out cones, gates, and slaloms on your actual lot.</p>
+			<div class="mode-cards">
+				<button class="mode-card" onclick={selectMap}>
+					<span class="mode-icon"><Map size={32} /></span>
+					<span class="mode-name">Live Map</span>
+					<span class="mode-desc">Design on live satellite imagery of your venue</span>
 				</button>
-				<button class="mode-btn" onclick={openGallery}>
-					<span class="mode-icon">🖼️</span>
-					Load Image
+				<button class="mode-card" onclick={openGallery}>
+					<span class="mode-icon"><Image size={32} /></span>
+					<span class="mode-name">Lot Image</span>
+					<span class="mode-desc">Calibrate and design over an uploaded lot image</span>
 				</button>
 			</div>
+			<p class="landing-hint">
+				Click the <strong>?</strong> in the top bar anytime for tools & shortcuts
+			</p>
 		</div>
 	{:else}
 		<div class="gallery-panel">
 			<h2 class="gallery-header">Choose a Course Image</h2>
 			<div class="gallery-grid">
-				{#each galleryImages as img}
+				{#each galleryImages as img (img.file)}
 					<button class="gallery-thumb" onclick={() => selectGalleryImage(img)}>
 						<img src="assets/courses/{img.file}" alt={img.name} />
 						<span>{img.name}</span>
 					</button>
 				{/each}
 				<button class="gallery-thumb gallery-upload" onclick={() => fileInput.click()}>
-					<span class="upload-icon">+</span>
+					<span class="upload-icon"><Plus size={32} /></span>
 					<span>Upload</span>
 				</button>
 			</div>
-			<button class="gallery-back" onclick={() => (showGallery = false)}>Back</button>
+			<div class="gallery-actions">
+				<Button variant="secondary" onclick={() => (showGallery = false)}>Back</Button>
+			</div>
 		</div>
 	{/if}
 </div>
@@ -86,54 +99,86 @@
 />
 
 <style>
-	.banner-overlay {
+	.landing-overlay {
 		position: absolute;
 		inset: 0;
-		background: rgba(15, 23, 42, 0.95);
+		background: var(--bg-overlay);
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		z-index: 200;
+		z-index: var(--z-landing);
 	}
 
-	.mode-choices {
-		text-align: center;
-	}
-
-	.banner-title {
-		font-size: 24px;
-		font-weight: 700;
-		color: #e2e8f0;
-		margin-bottom: 32px;
-	}
-
-	.banner-buttons {
-		display: flex;
-		gap: 24px;
-	}
-
-	.mode-btn {
+	.landing {
 		display: flex;
 		flex-direction: column;
 		align-items: center;
-		gap: 12px;
-		padding: 32px 40px;
-		background: #1e293b;
-		border: 2px solid #334155;
-		border-radius: 12px;
-		color: #e2e8f0;
-		font-size: 16px;
-		cursor: pointer;
-		transition: border-color 0.2s, background 0.2s;
+		text-align: center;
 	}
 
-	.mode-btn:hover {
-		border-color: #3b82f6;
-		background: #1e3a5f;
+	.landing-title {
+		font-size: var(--text-2xl);
+		font-weight: 600;
+		color: var(--text-primary);
+		margin-bottom: var(--space-2);
+	}
+
+	.landing-tagline {
+		font-size: var(--text-base);
+		color: var(--text-muted);
+		margin-bottom: var(--space-8);
+	}
+
+	.mode-cards {
+		display: flex;
+		gap: var(--space-6);
+	}
+
+	.mode-card {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: var(--space-3);
+		width: 240px;
+		padding: var(--space-8) var(--space-6);
+		background: var(--bg-surface);
+		border: 2px solid var(--border);
+		border-radius: var(--radius-lg);
+		color: var(--text-primary);
+		cursor: pointer;
+		transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+	}
+
+	.mode-card:hover {
+		border-color: var(--border-focus);
+		box-shadow: var(--shadow-md);
+		transform: translateY(-2px);
 	}
 
 	.mode-icon {
-		font-size: 36px;
+		display: inline-flex;
+		color: var(--accent-light);
+	}
+
+	.mode-name {
+		font-size: var(--text-lg);
+		font-weight: 600;
+	}
+
+	.mode-desc {
+		font-size: var(--text-md);
+		color: var(--text-muted);
+		line-height: 1.4;
+	}
+
+	.landing-hint {
+		margin-top: var(--space-8);
+		font-size: var(--text-sm);
+		color: var(--text-dim);
+	}
+
+	.landing-hint strong {
+		color: var(--text-muted);
 	}
 
 	.gallery-panel {
@@ -144,43 +189,46 @@
 	}
 
 	.gallery-header {
-		font-size: 18px;
-		color: #e2e8f0;
-		margin-bottom: 16px;
+		font-size: var(--text-xl);
+		font-weight: 600;
+		color: var(--text-primary);
+		margin-bottom: var(--space-4);
 		text-align: center;
 	}
 
 	.gallery-grid {
 		display: grid;
 		grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-		gap: 12px;
-		margin-bottom: 16px;
+		gap: var(--space-3);
+		margin-bottom: var(--space-4);
 	}
 
 	.gallery-thumb {
 		display: flex;
 		flex-direction: column;
 		align-items: center;
-		gap: 6px;
-		padding: 8px;
-		background: #1e293b;
-		border: 1px solid #334155;
-		border-radius: 8px;
+		gap: var(--space-2);
+		padding: var(--space-2);
+		background: var(--bg-surface);
+		border: 1px solid var(--border);
+		border-radius: var(--radius-lg);
 		cursor: pointer;
-		color: #cbd5e1;
-		font-size: 12px;
+		color: var(--text-secondary);
+		font-size: var(--text-sm);
 		text-align: center;
+		transition: border-color 0.15s ease, box-shadow 0.15s ease;
 	}
 
 	.gallery-thumb:hover {
-		border-color: #3b82f6;
+		border-color: var(--border-focus);
+		box-shadow: var(--shadow-md);
 	}
 
 	.gallery-thumb img {
 		width: 100%;
 		aspect-ratio: 4/3;
 		object-fit: cover;
-		border-radius: 4px;
+		border-radius: var(--radius-sm);
 	}
 
 	.gallery-upload {
@@ -189,19 +237,12 @@
 	}
 
 	.upload-icon {
-		font-size: 32px;
-		color: #64748b;
+		display: inline-flex;
+		color: var(--text-dim);
 	}
 
-	.gallery-back {
-		display: block;
-		margin: 0 auto;
-		padding: 8px 24px;
-		background: #334155;
-		border: none;
-		border-radius: 6px;
-		color: #cbd5e1;
-		font-size: 14px;
-		cursor: pointer;
+	.gallery-actions {
+		display: flex;
+		justify-content: center;
 	}
 </style>

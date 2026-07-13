@@ -1,4 +1,5 @@
 import type { LngLat } from '$lib/types/course';
+import { FEET_PER_METER, metersPerDegLat, metersPerDegLng } from './geo';
 
 const DIRECTIONAL_OFFSET_FEET = 3;
 
@@ -35,17 +36,17 @@ export function computeGateCones(
 		};
 	}
 
-	const metersPerDegLng = 111320 * Math.cos(center[1] * Math.PI / 180);
-	const metersPerDegLat = 110540;
-	const halfMeters = halfWidth / 3.28084;
+	const mPerDegLng = metersPerDegLng(center[1]);
+	const mPerDegLat = metersPerDegLat();
+	const halfMeters = halfWidth / FEET_PER_METER;
 
-	const dxM = dx * metersPerDegLng;
-	const dyM = dy * metersPerDegLat;
+	const dxM = dx * mPerDegLng;
+	const dyM = dy * mPerDegLat;
 	const angle = Math.atan2(dyM, dxM);
 
 	const perpAngle = angle + Math.PI / 2;
-	const offsetLng = (Math.cos(perpAngle) * halfMeters) / metersPerDegLng;
-	const offsetLat = (Math.sin(perpAngle) * halfMeters) / metersPerDegLat;
+	const offsetLng = (Math.cos(perpAngle) * halfMeters) / mPerDegLng;
+	const offsetLat = (Math.sin(perpAngle) * halfMeters) / mPerDegLat;
 
 	return {
 		left: [center[0] + offsetLng, center[1] + offsetLat],

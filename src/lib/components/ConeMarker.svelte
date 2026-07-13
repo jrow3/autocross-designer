@@ -44,7 +44,7 @@
 		}
 
 		innerEl = inner;
-		return { wrapper: wrapForMapbox(inner), inner };
+		return { wrapper: wrapForMapbox(mapStore.mode, inner), inner };
 	}
 
 	function applyTransform() {
@@ -147,7 +147,7 @@
 
 		const { wrapper, inner } = createElement(cone.type);
 
-		marker = createMarker({ element: wrapper, draggable: !readonly })
+		marker = createMarker(mapStore.mode, { element: wrapper, draggable: !readonly })
 			.setLngLat(cone.lngLat as [number, number])
 			.addTo(map);
 

@@ -2,7 +2,7 @@
 	import { onMount } from 'svelte';
 	import { mapStore } from '$lib/stores/mapStore.svelte';
 	import { courseStore } from '$lib/stores/courseStore.svelte';
-	import { haversineFeet } from '$lib/engine/distance';
+	import { haversineFeet } from '$lib/engine/geo';
 	import { createMarker, type AnyMarker } from '$lib/engine/markerFactory';
 	import type { LngLat } from '$lib/types/course';
 
@@ -55,7 +55,7 @@
 			const map = mapStore.map!;
 			const el = document.createElement('div');
 			el.className = 'measurement-endpoint';
-			pendingMarker = createMarker({ element: el })
+			pendingMarker = createMarker(mapStore.mode, { element: el })
 				.setLngLat(effectiveLngLat as [number, number])
 				.addTo(map);
 		} else {
@@ -100,13 +100,13 @@
 		label.className = 'measurement-label';
 		svgContainer.appendChild(label);
 
-		function createEndpoint(endpoint: 0 | 1): mapboxgl.Marker {
+		function createEndpoint(endpoint: 0 | 1): AnyMarker {
 			const coneId = endpoint === 0 ? m.coneId1 : m.coneId2;
 			const isSnapped = coneId != null;
 			const el = document.createElement('div');
 			el.className = isSnapped ? 'measurement-endpoint measurement-endpoint-snapped' : 'measurement-endpoint';
 			const pos = endpoint === 0 ? m.p1 : m.p2;
-			const marker = createMarker({ element: el, draggable: !isSnapped })
+			const marker = createMarker(mapStore.mode, { element: el, draggable: !isSnapped })
 				.setLngLat(pos as [number, number])
 				.addTo(map);
 
@@ -157,7 +157,7 @@
 			return marker;
 		}
 
-		const markers: [mapboxgl.Marker, mapboxgl.Marker] = [createEndpoint(0), createEndpoint(1)];
+		const markers: [AnyMarker, AnyMarker] = [createEndpoint(0), createEndpoint(1)];
 		const visual: MeasurementVisual = { index, markers, svgEl: svg, labelEl: label };
 		updateVisualPositions(visual);
 		return visual;
