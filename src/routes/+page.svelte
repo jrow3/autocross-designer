@@ -97,11 +97,16 @@
 		flex: 1;
 		display: flex;
 		overflow: hidden;
+		background: var(--bg-base);
 	}
 
 	.map-wrapper {
 		flex: 1;
 		position: relative;
 		display: flex;
+		margin: var(--space-2) 0 var(--space-2) var(--space-2);
+		border: 1px solid var(--border);
+		border-radius: var(--radius-lg);
+		overflow: hidden;
 	}
 </style>

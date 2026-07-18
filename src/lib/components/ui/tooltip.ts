@@ -26,9 +26,10 @@ function ensureTip(): HTMLDivElement {
 		alignItems: 'center',
 		gap: 'var(--space-2)',
 		padding: 'var(--space-1) var(--space-2)',
-		/* Atlas-style dark chip — hardcoded, theme-independent */
-		background: '#202124',
-		color: '#fff',
+		/* Studio elevated chip — hardcoded, theme-independent */
+		background: '#24262c',
+		border: '1px solid #2e3138',
+		color: '#e6e7ea',
 		borderRadius: 'var(--radius-md)',
 		boxShadow: 'var(--shadow-md)',
 		fontSize: 'var(--text-sm)',

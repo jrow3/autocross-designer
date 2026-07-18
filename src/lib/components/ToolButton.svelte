@@ -34,33 +34,34 @@
 		align-items: center;
 		gap: var(--space-1);
 		padding: var(--space-1) var(--space-2);
-		background: var(--bg-surface);
-		color: var(--text-secondary);
+		background: transparent;
+		color: var(--text-muted);
 		border: none;
 		border-radius: var(--radius-md);
 		cursor: pointer;
 		font-family: var(--font-ui);
 		font-size: var(--text-sm);
+		font-weight: 500;
 		white-space: nowrap;
 		flex-shrink: 0;
 		transition: background 0.12s ease, color 0.12s ease;
 	}
 
 	.tool-btn:hover {
-		background: var(--bg-hover);
+		background: var(--bg-elevated);
 		color: var(--text-primary);
 	}
 
 	.tool-btn.active {
-		background: var(--accent);
-		color: #fff;
+		background: var(--accent-dim);
+		color: var(--accent);
 	}
 
 	.shortcut-hint {
 		font-family: var(--font-mono);
 		font-size: var(--text-xs);
 		color: var(--text-dim);
-		background: var(--bg-base);
+		background: var(--bg-elevated);
 		padding: 1px var(--space-1);
 		border-radius: var(--radius-sm);
 		min-width: 16px;
@@ -68,7 +69,7 @@
 	}
 
 	.tool-btn.active .shortcut-hint {
-		background: rgba(0, 0, 0, 0.25);
-		color: rgba(255, 255, 255, 0.75);
+		background: transparent;
+		color: var(--accent);
 	}
 </style>

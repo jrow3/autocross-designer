@@ -38,7 +38,7 @@
 
 <header class="top-bar">
 	<div class="brand-group">
-		<span class="brand">Autocross Designer</span>
+		<span class="brand">Autocross Course Designer</span>
 	</div>
 	<div class="center-group">
 		<ModeSwitcher />
@@ -86,7 +86,7 @@
 		>
 			{#snippet icon()}<FileDown size={14} />{/snippet}
 		</Menu>
-		<Button variant="success" size="sm" onclick={onsave}>Save & Share</Button>
+		<Button variant="primary" size="sm" onclick={onsave}>Save & Share</Button>
 	</div>
 </header>
 
@@ -95,8 +95,8 @@
 		display: flex;
 		align-items: center;
 		padding: var(--space-1) var(--space-2);
-		background: var(--bg-surface);
-		border-bottom: 1px solid var(--border);
+		background: var(--bg-base);
+		border-bottom: 1px solid var(--border-subtle);
 		gap: var(--space-2);
 		flex-shrink: 0;
 	}

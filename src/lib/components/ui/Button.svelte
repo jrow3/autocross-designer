@@ -73,7 +73,8 @@
 
 	.primary {
 		background: var(--accent);
-		color: #fff;
+		color: var(--accent-ink);
+		font-weight: 600;
 	}
 
 	.primary:hover:not(:disabled) {
@@ -81,7 +82,7 @@
 	}
 
 	.secondary {
-		background: var(--bg-elevated);
+		background: var(--bg-surface);
 		border-color: var(--border);
 		color: var(--text-primary);
 	}
@@ -97,13 +98,13 @@
 	}
 
 	.ghost:hover:not(:disabled) {
-		background: var(--bg-hover);
+		background: var(--bg-elevated);
 		color: var(--text-primary);
 	}
 
 	.danger {
 		background: var(--danger);
-		color: #fff;
+		color: var(--danger-ink);
 	}
 
 	.danger:hover:not(:disabled) {
@@ -112,7 +113,7 @@
 
 	.success {
 		background: var(--success);
-		color: #fff;
+		color: var(--success-ink);
 		font-weight: 600;
 	}
 

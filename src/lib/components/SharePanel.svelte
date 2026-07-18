@@ -78,7 +78,7 @@
 				<Button size="sm" onclick={onexport}><Download size={14} /> Export .json</Button>
 				<Button size="sm" onclick={onexportsvg}><FileImage size={14} /> Export .svg</Button>
 				<Button size="sm" onclick={onimport}><Upload size={14} /> Import</Button>
-				<Button variant="success" onclick={onsave}>Save & Share</Button>
+				<Button variant="primary" onclick={onsave}>Save & Share</Button>
 			</div>
 		</section>
 

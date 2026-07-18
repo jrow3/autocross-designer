@@ -21,7 +21,7 @@
 		position: absolute;
 		bottom: var(--space-4);
 		left: var(--space-4);
-		background: rgba(255, 255, 255, 0.95);
+		background: var(--bg-overlay);
 		color: var(--text-primary);
 		border: 1px solid var(--border);
 		box-shadow: var(--shadow-md);

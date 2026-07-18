@@ -2,7 +2,7 @@
  * Design tokens — single source of truth for both routes (editor + viewer).
  * Layer 1: primitive ramps (never referenced by components).
  * Layer 2: semantic aliases (what components consume).
- * Atlas light is the default; [data-theme="dark"] restores the slate theme (future toggle, no UI yet).
+ * "Studio" dark is the only theme: quiet charcoal chrome, muted blue accent.
  */
 
 :root {
@@ -36,60 +36,48 @@
 }
 
 :root {
-	/* Layer 2 — semantic (Atlas light, default) */
-	--bg-base: #ffffff;
-	--bg-surface: var(--gray-100);
-	--bg-elevated: #ffffff;
-	--bg-hover: var(--gray-300);
-	--bg-overlay: rgba(255, 255, 255, 0.9);
-	--border-subtle: var(--gray-200);
-	--border: var(--gray-300);
-	--border-focus: #1a73e8;
-	--text-primary: var(--gray-900);
-	--text-secondary: var(--gray-800);
-	--text-muted: var(--gray-700);
-	--text-dim: var(--gray-500);
-	--accent: #1a73e8;
-	--accent-hover: #1765cc;
-	--accent-light: #1a73e8;
-	--success: #188038;
-	--success-hover: #137333;
-	--danger: #d93025;
-	--danger-hover: #b3261e;
-	--warning: var(--amber-500);
-
-	/* Shadows */
-	--shadow-sm: 0 1px 2px rgba(60, 64, 67, 0.15);
-	--shadow-md: 0 2px 8px rgba(60, 64, 67, 0.2);
-	--shadow-lg: 0 8px 24px rgba(60, 64, 67, 0.25);
+	/* Layer 1 — Studio charcoal ramp */
+	--studio-950: #111216;
+	--studio-900: #17181c;
+	--studio-850: #1d1f24;
+	--studio-800: #24262c;
+	--studio-700: #2b2e35;
+	--studio-600: #2e3138;
+	--studio-500: #64686f;
+	--studio-300: #a2a6ad;
+	--studio-100: #e6e7ea;
 }
 
-[data-theme='dark'] {
-	/* Layer 2 — semantic (slate dark; future toggle, no UI yet) */
-	--bg-base: var(--slate-900);
-	--bg-surface: var(--slate-800);
-	--bg-elevated: var(--slate-700);
-	--bg-hover: var(--slate-700);
-	--bg-overlay: rgba(15, 23, 42, 0.85);
-	--border-subtle: #26334a;
-	--border: var(--slate-700);
-	--border-focus: var(--blue-500);
-	--text-primary: var(--slate-200);
-	--text-secondary: var(--slate-300);
-	--text-muted: var(--slate-400);
-	--text-dim: var(--slate-500);
-	--accent: var(--blue-600);
-	--accent-hover: var(--blue-700);
-	--accent-light: var(--blue-500);
-	--success: var(--green-600);
-	--success-hover: var(--green-700);
-	--danger: var(--red-500);
-	--danger-hover: var(--red-600);
+:root {
+	/* Layer 2 — semantic (Studio dark) */
+	--bg-base: var(--studio-900);
+	--bg-surface: var(--studio-850);
+	--bg-elevated: var(--studio-800);
+	--bg-hover: var(--studio-700);
+	--bg-overlay: rgba(23, 24, 28, 0.85);
+	--border-subtle: #26282e;
+	--border: var(--studio-600);
+	--border-focus: #6ea8ff;
+	--text-primary: var(--studio-100);
+	--text-secondary: #c9ccd1;
+	--text-muted: var(--studio-300);
+	--text-dim: var(--studio-500);
+	--accent: #6ea8ff;
+	--accent-hover: #8cbaff;
+	--accent-light: #6ea8ff;
+	--accent-dim: rgba(110, 168, 255, 0.13);
+	--accent-ink: #0d1522;
+	--success: #57c98b;
+	--success-hover: #74d6a0;
+	--success-ink: #0b1a11;
+	--danger: #f06a6a;
+	--danger-hover: #f48c8c;
+	--danger-ink: #1f0d0d;
 	--warning: var(--amber-500);
 
 	/* Shadows */
 	--shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.35);
-	--shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
+	--shadow-md: 0 4px 16px rgba(0, 0, 0, 0.35);
 	--shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.5);
 }
 
@@ -109,8 +97,8 @@
 	--worker-zone: #ff6b6b;
 
 	/* Type scale */
-	--font-ui: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-	--font-mono: ui-monospace, 'Cascadia Mono', 'Segoe UI Mono', monospace;
+	--font-ui: 'Schibsted Grotesk', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+	--font-mono: 'Fragment Mono', ui-monospace, 'Cascadia Mono', 'Segoe UI Mono', monospace;
 	--text-xs: 11px;
 	--text-sm: 12px;
 	--text-md: 13px;
@@ -171,7 +159,7 @@ body {
 
 /* Map interaction globals (used by imperative marker DOM) */
 .multi-selected {
-	filter: drop-shadow(0 0 4px rgba(26, 115, 232, 0.9));
+	filter: drop-shadow(0 0 4px rgba(110, 168, 255, 0.9));
 	outline: 2px solid var(--accent-light);
 	outline-offset: 2px;
 }
@@ -179,7 +167,7 @@ body {
 .selection-box {
 	position: fixed;
 	border: 2px dashed var(--accent-light);
-	background: rgba(26, 115, 232, 0.1);
+	background: rgba(110, 168, 255, 0.1);
 	z-index: var(--z-selection);
 	pointer-events: none;
 }
@@ -203,4 +191,60 @@ body {
 .mapboxgl-ctrl-bottom-left,
 .mapboxgl-ctrl-bottom-right {
 	z-index: 1;
+}
+
+/* Studio-dark theming for Mapbox default controls + geocoder */
+.mapboxgl-ctrl-group {
+	background: var(--bg-elevated) !important;
+	border: 1px solid var(--border);
+	border-radius: var(--radius-md) !important;
+	box-shadow: var(--shadow-md) !important;
+}
+
+.mapboxgl-ctrl-group button {
+	background: transparent !important;
+}
+
+.mapboxgl-ctrl-group button + button {
+	border-top: 1px solid var(--border-subtle) !important;
+}
+
+.mapboxgl-ctrl-group button:hover {
+	background: var(--bg-hover) !important;
+}
+
+.mapboxgl-ctrl-icon {
+	filter: invert(0.85);
+}
+
+.mapboxgl-ctrl-geocoder {
+	background: var(--bg-elevated) !important;
+	border: 1px solid var(--border);
+	border-radius: var(--radius-md) !important;
+	box-shadow: var(--shadow-md) !important;
+	font-family: var(--font-ui) !important;
+}
+
+.mapboxgl-ctrl-geocoder input {
+	color: var(--text-primary) !important;
+}
+
+.mapboxgl-ctrl-geocoder .suggestions {
+	background: var(--bg-elevated) !important;
+	border: 1px solid var(--border);
+	box-shadow: var(--shadow-lg) !important;
+}
+
+.mapboxgl-ctrl-geocoder .suggestions li > a {
+	color: var(--text-secondary) !important;
+}
+
+.mapboxgl-ctrl-geocoder .suggestions li > a:hover,
+.mapboxgl-ctrl-geocoder .suggestions li.active > a {
+	background: var(--bg-hover) !important;
+	color: var(--text-primary) !important;
+}
+
+.mapboxgl-ctrl-geocoder--icon {
+	fill: var(--text-muted) !important;
 }
