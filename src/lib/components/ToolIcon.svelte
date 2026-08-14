@@ -15,6 +15,10 @@
 		<rect x="1.5" y="6" width="13" height="4" rx="0.5" fill="var(--barrier)" />
 		<line x1="5.5" y1="6" x2="5.5" y2="10" stroke="var(--bg-base)" stroke-width="1" />
 		<line x1="10.5" y1="6" x2="10.5" y2="10" stroke="var(--bg-base)" stroke-width="1" />
+	{:else if tool === 'mirror'}
+		<line x1="8" y1="1.5" x2="8" y2="14.5" stroke="currentColor" stroke-width="1" stroke-dasharray="2 1.5" />
+		<polygon points="2,11 6,4 6,11" fill="currentColor" />
+		<polygon points="14,11 10,4 10,11" fill="currentColor" opacity="0.5" />
 	{:else if tool === 'start-cone'}
 		<circle cx="8" cy="8" r="5.5" fill="var(--cone-start)" stroke="#fff" stroke-width="1.5" />
 	{:else if tool === 'finish-cone'}

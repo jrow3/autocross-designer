@@ -50,6 +50,7 @@ export const TOOL_HANDLERS: Record<Tool, ToolHandler> = {
 	scale: { onClick: ({ lngLat, flows }) => flows.scale.handleClick(lngLat) },
 	'hazard-line': { onClick: ({ lngLat, flows }) => flows.hazardLine.handleClick(lngLat) },
 	barrier: { onClick: ({ lngLat, flows }) => flows.barrier.handleClick(lngLat) },
+	mirror: { onClick: ({ lngLat, flows }) => flows.mirror.handleClick(lngLat) },
 	lying: { onClick: ({ lngLat }) => placeCone('lying', lngLat) },
 
 	worker: {

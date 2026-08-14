@@ -143,6 +143,15 @@ export const TOOL_DEFS: ToolDef[] = [
 		cursor: 'crosshair',
 		hotkey: 'b'
 	},
+	{
+		tool: 'mirror',
+		label: 'ProSolo mirror',
+		description: 'Click two points on the shared start line to mirror the course for ProSolo.',
+		mode: 'design',
+		multiStep: true,
+		cursor: 'crosshair',
+		hotkey: 'x'
+	},
 	// --- annotate ---
 	{
 		tool: 'note',

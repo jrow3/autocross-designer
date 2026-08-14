@@ -40,7 +40,8 @@ describe('TOOL_DEFS modes', () => {
 			'courseoutline',
 			'worker-zone',
 			'lying',
-			'barrier'
+			'barrier',
+			'mirror'
 		]);
 	});
 

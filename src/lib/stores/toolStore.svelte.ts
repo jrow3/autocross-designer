@@ -8,6 +8,7 @@ export type Tool =
 	| 'gate'
 	| 'slalom'
 	| 'barrier'
+	| 'mirror'
 	| 'worker'
 	| 'select'
 	| 'drivingline'

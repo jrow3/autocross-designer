@@ -6,6 +6,7 @@
 	import { layerStore } from '$lib/stores/layerStore.svelte';
 	import { selectionStore } from '$lib/stores/selectionStore.svelte';
 	import { createGateFlow, createSlalomFlow, createScaleFlow, createHazardLineFlow, createBarrierFlow } from '$lib/interactions/placementFlows.svelte';
+	import { createMirrorFlow } from '$lib/interactions/mirrorFlow.svelte';
 	import { dispatchClick, dispatchDblClick, type ToolCtx } from '$lib/interactions/toolRouter';
 	import { registerCanvasKeys } from '$lib/interactions/keyScope';
 	import { generateId } from '$lib/engine/id';
@@ -39,6 +40,7 @@
 	const scaleFlow = createScaleFlow();
 	const hazardLineFlow = createHazardLineFlow();
 	const barrierFlow = createBarrierFlow();
+	const mirrorFlow = createMirrorFlow();
 
 	let pendingNoteLngLat: LngLat | null = $state(null);
 	let mousePos: LngLat | null = $state(null);
@@ -59,7 +61,7 @@
 				stagingPolygon: stagingPolygonOverlay,
 				workerZonePolygon: workerZonePolygonOverlay
 			},
-			flows: { gate: gateFlow, slalom: slalomFlow, scale: scaleFlow, hazardLine: hazardLineFlow, barrier: barrierFlow },
+			flows: { gate: gateFlow, slalom: slalomFlow, scale: scaleFlow, hazardLine: hazardLineFlow, barrier: barrierFlow, mirror: mirrorFlow },
 			ui: { openNoteDialog: (l) => (pendingNoteLngLat = l) }
 		};
 	}
@@ -180,6 +182,9 @@
 		}
 		if (toolStore.activeTool !== 'barrier') {
 			barrierFlow.reset();
+		}
+		if (toolStore.activeTool !== 'mirror') {
+			mirrorFlow.reset();
 		}
 	});
 

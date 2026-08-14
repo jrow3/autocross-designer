@@ -37,7 +37,7 @@ describe('digitMapFor', () => {
 
 describe('UNIVERSAL_KEY_MAP', () => {
 	it('maps every declared hotkey', () => {
-		expect(UNIVERSAL_KEY_MAP).toEqual({ v: 'select', m: 'measure', l: 'lying', b: 'barrier' });
+		expect(UNIVERSAL_KEY_MAP).toEqual({ v: 'select', m: 'measure', l: 'lying', b: 'barrier', x: 'mirror' });
 	});
 
 	it('does not collide with digit shortcuts in any mode', () => {

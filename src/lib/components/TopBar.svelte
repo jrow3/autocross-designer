@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { courseStore } from '$lib/stores/courseStore.svelte';
+	import { reMirror } from '$lib/interactions/mirrorFlow.svelte';
 	import ModeSwitcher from './ModeSwitcher.svelte';
+	import FlipHorizontal2 from '@lucide/svelte/icons/flip-horizontal-2';
 	import ViewPanel from './ViewPanel.svelte';
 	import ExportsMenu from './ExportsMenu.svelte';
 	import Button from './ui/Button.svelte';
@@ -34,6 +36,16 @@
 	</div>
 	<div class="center-group">
 		<ModeSwitcher />
+		{#if courseStore.course.prosolo}
+			<button
+				class="prosolo-badge"
+				use:tooltip={{ text: 'ProSolo course — click to re-mirror after edits', placement: 'bottom' }}
+				onclick={reMirror}
+			>
+				<FlipHorizontal2 size={12} />
+				ProSolo
+			</button>
+		{/if}
 	</div>
 	<div class="action-group">
 		<span class="tip-host" use:tooltip={{ text: 'Undo', shortcut: 'Ctrl+Z', placement: 'bottom' }}>
@@ -118,5 +130,24 @@
 		height: 20px;
 		background: var(--border);
 		margin: 0 var(--space-1);
+	}
+
+	.prosolo-badge {
+		display: inline-flex;
+		align-items: center;
+		gap: 4px;
+		margin-left: var(--space-2);
+		padding: 2px var(--space-2);
+		background: var(--accent-dim);
+		color: var(--accent);
+		border: none;
+		border-radius: var(--radius-full);
+		font-size: var(--text-xs);
+		font-weight: 600;
+		cursor: pointer;
+	}
+
+	.prosolo-badge:hover {
+		filter: brightness(1.2);
 	}
 </style>
