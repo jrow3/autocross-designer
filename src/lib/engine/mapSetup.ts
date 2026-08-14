@@ -6,6 +6,7 @@ export interface MapSetupOptions {
 	center: LngLat;
 	zoom: number;
 	token: string;
+	controls?: 'editor' | 'viewer';
 }
 
 export function createMapboxMap(container: HTMLElement, options: MapSetupOptions): mapboxgl.Map {
@@ -24,6 +25,11 @@ export function createMapboxMap(container: HTMLElement, options: MapSetupOptions
 		pitchWithRotate: false,
 		touchPitch: false
 	});
+
+	if (options.controls === 'viewer') {
+		map.addControl(new mapboxgl.NavigationControl(), 'top-left');
+		return map;
+	}
 
 	map.doubleClickZoom.disable();
 	map.addControl(new mapboxgl.NavigationControl(), 'bottom-right');

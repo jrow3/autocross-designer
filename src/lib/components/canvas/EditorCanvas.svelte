@@ -15,27 +15,18 @@
 	import { TOOL_DEFS } from '$lib/config/tools';
 	import { STAGING_COLOR, WORKER_ZONE_COLOR } from '$lib/config/palette';
 	import type { CourseData, LngLat } from '$lib/types/course';
-	import MapHost from './MapHost.svelte';
+	import CourseCanvas from './CourseCanvas.svelte';
 	import GhostPreview from './GhostPreview.svelte';
-	import ConeMarker from '../ConeMarker.svelte';
-	import WorkerMarker from '../WorkerMarker.svelte';
-	import NoteMarker from '../NoteMarker.svelte';
 	import NoteDialog from '../NoteDialog.svelte';
 	import SlalomDialog from '../SlalomDialog.svelte';
-	import DrivingLine from '../DrivingLine.svelte';
-	import MeasurementOverlay from '../MeasurementOverlay.svelte';
-	import OutlineOverlay from '../OutlineOverlay.svelte';
 	import GridOverlay from '../GridOverlay.svelte';
 	import SketchOverlay from '../SketchOverlay.svelte';
 	import PolygonOverlay from '../PolygonOverlay.svelte';
-	import StagingOverlay from '../StagingOverlay.svelte';
-	import WorkerZoneOverlay from '../WorkerZoneOverlay.svelte';
-	import HazardOverlay from '../HazardOverlay.svelte';
 	import ConeNumberOverlay from '../ConeNumberOverlay.svelte';
 	import ModeBanner from '../ModeBanner.svelte';
 	import ScaleDialog from '../ScaleDialog.svelte';
 
-	let mapHost = $state<MapHost>();
+	let courseCanvas = $state<CourseCanvas>();
 
 	// Mode selection — skip banner if coming from shared link "Edit a Copy"
 	let fromSharedLink = hasSkipBanner();
@@ -52,8 +43,6 @@
 	let mousePos: LngLat | null = $state(null);
 	let nextNoteNumber = $state(1);
 
-	let measurementOverlay = $state<MeasurementOverlay>();
-	let outlineOverlay = $state<OutlineOverlay>();
 	let gridOverlay = $state<GridOverlay>();
 	let sketchOverlay = $state<SketchOverlay>();
 	let stagingPolygonOverlay = $state<PolygonOverlay>();
@@ -64,8 +53,8 @@
 			lngLat,
 			event,
 			overlays: {
-				measurement: measurementOverlay,
-				outline: outlineOverlay,
+				measurement: courseCanvas?.getMeasurementOverlay(),
+				outline: courseCanvas?.getOutlineOverlay(),
 				stagingPolygon: stagingPolygonOverlay,
 				workerZonePolygon: workerZonePolygonOverlay
 			},
@@ -132,16 +121,16 @@
 		courseStore.course.imageFileName = mode === 'image' ? fileName : undefined;
 
 		if (mode === 'image' && imageSrc) {
-			mapHost?.initImageMode(imageSrc);
+			courseCanvas?.initImageMode(imageSrc);
 		} else {
-			mapHost?.initMapMode();
+			courseCanvas?.initMapMode();
 		}
 	}
 
 	function handleMapReady(mode: 'map' | 'image') {
 		if (mode === 'map') {
 			if (consumeFitCourseOnLoad()) {
-				setTimeout(() => mapHost?.fitBoundsToCourse(), 100);
+				setTimeout(() => courseCanvas?.fitBoundsToCourse(), 100);
 			}
 			return;
 		}
@@ -181,8 +170,8 @@
 		gateFlow.reset();
 		slalomFlow.reset();
 		scaleFlow.reset();
-		measurementOverlay?.cancelPending();
-		outlineOverlay?.cancelPending();
+		courseCanvas?.getMeasurementOverlay()?.cancelPending();
+		courseCanvas?.getOutlineOverlay()?.cancelPending();
 		if (toolStore.activeTool !== 'hazard-line') {
 			hazardLineFlow.reset();
 		}
@@ -198,7 +187,7 @@
 	});
 
 	export function fitBoundsToCourse(data?: CourseData) {
-		mapHost?.fitBoundsToCourse(data);
+		courseCanvas?.fitBoundsToCourse(data);
 	}
 
 	onMount(() => {
@@ -219,49 +208,10 @@
 </script>
 
 <div class="map-outer" style="--map-cursor: {TOOL_DEFS.find((d) => d.tool === toolStore.activeTool)?.cursor ?? 'crosshair'}">
-	<MapHost bind:this={mapHost} onmapevent={handleMapEvent} onready={handleMapReady} />
-
-	{#if showBanner}
-		<ModeBanner onselect={handleModeSelect} {reloadPrompt} />
-	{/if}
-
-	{#if mapStore.map}
-		{#if layerStore.isVisible('cones')}
-			{#each courseStore.course.cones as cone (cone.id)}
-				<ConeMarker {cone} />
-			{/each}
-		{/if}
-		{#if layerStore.isVisible('workers')}
-			{#each courseStore.course.workers as worker (worker.id)}
-				<WorkerMarker {worker} />
-			{/each}
-		{/if}
-		{#if layerStore.isVisible('notes')}
-			{#each courseStore.course.notes as note (note.id)}
-				<NoteMarker {note} />
-			{/each}
-		{/if}
-		{#if layerStore.isVisible('drivingLine')}
-			<DrivingLine />
-		{/if}
-		{#if layerStore.isVisible('measurements')}
-			<MeasurementOverlay bind:this={measurementOverlay} />
-		{/if}
-		{#if layerStore.isVisible('courseOutline')}
-			<OutlineOverlay bind:this={outlineOverlay} />
-		{/if}
+	<CourseCanvas bind:this={courseCanvas} onmapevent={handleMapEvent} onready={handleMapReady}>
 		<GridOverlay bind:this={gridOverlay} />
 		{#if layerStore.isVisible('sketches')}
 			<SketchOverlay bind:this={sketchOverlay} />
-		{/if}
-		{#if layerStore.isVisible('stagingAreas')}
-			<StagingOverlay />
-		{/if}
-		{#if layerStore.isVisible('workerZones')}
-			<WorkerZoneOverlay />
-		{/if}
-		{#if layerStore.isVisible('hazardMarkers')}
-			<HazardOverlay />
 		{/if}
 		{#if layerStore.isVisible('coneNumbers')}
 			<ConeNumberOverlay />
@@ -298,6 +248,10 @@
 				});
 			}}
 		/>
+	</CourseCanvas>
+
+	{#if showBanner}
+		<ModeBanner onselect={handleModeSelect} {reloadPrompt} />
 	{/if}
 </div>
 

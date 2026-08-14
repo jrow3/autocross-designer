@@ -12,11 +12,13 @@
 
 	let {
 		onmapevent,
-		onready
+		onready,
+		controls = 'editor'
 	}: {
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		onmapevent: (kind: 'click' | 'dblclick' | 'mousemove' | 'mousedown' | 'mouseup', e: any) => void;
 		onready?: (mode: 'map' | 'image') => void;
+		controls?: 'editor' | 'viewer';
 	} = $props();
 
 	const BASE_ZOOM = 17;
@@ -40,13 +42,18 @@
 		const map = createMapboxMap(container, {
 			center: courseStore.course.mapCenter,
 			zoom: courseStore.course.mapZoom,
-			token
+			token,
+			controls
 		});
 
 		map.on('load', () => {
 			mapStore.setMap(map);
-			boxSelectCleanup = initBoxSelection(container, () => mapStore.map);
-			sketchPanCleanup = initSketchPan(container, () => mapStore.map);
+			mapStore.setZoom(map.getZoom());
+			updateMarkerScale();
+			if (controls === 'editor') {
+				boxSelectCleanup = initBoxSelection(container, () => mapStore.map);
+				sketchPanCleanup = initSketchPan(container, () => mapStore.map);
+			}
 			onready?.('map');
 		});
 
@@ -55,16 +62,18 @@
 			updateMarkerScale();
 		});
 
-		map.on('click', (e: mapboxgl.MapMouseEvent) => onmapevent('click', e));
-		map.on('mousemove', (e: mapboxgl.MapMouseEvent) => onmapevent('mousemove', e));
-		map.on('dblclick', (e: mapboxgl.MapMouseEvent) => onmapevent('dblclick', e));
-		map.on('mousedown', (e: mapboxgl.MapMouseEvent) => onmapevent('mousedown', e));
-		map.on('mouseup', (e: mapboxgl.MapMouseEvent) => onmapevent('mouseup', e));
+		if (controls === 'editor') {
+			map.on('click', (e: mapboxgl.MapMouseEvent) => onmapevent('click', e));
+			map.on('mousemove', (e: mapboxgl.MapMouseEvent) => onmapevent('mousemove', e));
+			map.on('dblclick', (e: mapboxgl.MapMouseEvent) => onmapevent('dblclick', e));
+			map.on('mousedown', (e: mapboxgl.MapMouseEvent) => onmapevent('mousedown', e));
+			map.on('mouseup', (e: mapboxgl.MapMouseEvent) => onmapevent('mouseup', e));
 
-		map.on('moveend', () => {
-			const center = map.getCenter();
-			courseStore.setMapView([center.lng, center.lat], map.getZoom());
-		});
+			map.on('moveend', () => {
+				const center = map.getCenter();
+				courseStore.setMapView([center.lng, center.lat], map.getZoom());
+			});
+		}
 	}
 
 	export function initImageMode(imageSrc: string) {
