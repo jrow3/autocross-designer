@@ -1,7 +1,7 @@
 import type mapboxgl from 'mapbox-gl';
 import type { ImageMap } from './imageMap';
 import type { CourseData } from '$lib/types/course';
-import { CONE_COLORS, coneColor, NOTE_COLOR, WORKER_COLOR } from './renderColors';
+import { CONE_COLORS, coneColor, NOTE_COLOR, WORKER_COLOR } from '$lib/config/palette';
 
 export interface CaptureOptions {
 	map: mapboxgl.Map | ImageMap | null;

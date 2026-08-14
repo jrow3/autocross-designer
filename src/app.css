@@ -83,11 +83,13 @@
 
 :root {
 	/* Domain colors — flat across themes; must match physical course elements.
-	   Mirrored in src/lib/config/palette.ts (Mapbox paints can't read CSS vars) — keep in sync. */
+	   Canonical values live in src/lib/config/palette.ts (Mapbox paints can't read
+	   CSS vars); palette.test.ts asserts these mirrors stay in sync. */
 	--cone-regular: #f97316;
 	--cone-pointer: #84cc16;
 	--cone-start: #22c55e;
 	--cone-finish: #fff;
+	--cone-trailer: #64748b;
 	--worker: #7c3aed;
 	--note: #0ea5e9;
 	--measure: #f472b6;
@@ -95,6 +97,8 @@
 	--staging: #6495ed;
 	--hazard: #e53e3e;
 	--worker-zone: #ff6b6b;
+	--handle-resize: #3b82f6;
+	--handle-rotate: #f59e0b;
 
 	/* Type scale */
 	--font-ui: 'Schibsted Grotesk', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;

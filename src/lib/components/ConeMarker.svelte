@@ -251,11 +251,11 @@
 	}
 
 	:global(.marker-regular) {
-		background: #f97316;
+		background: var(--cone-regular);
 	}
 
 	:global(.marker-pointer) {
-		background: #84cc16;
+		background: var(--cone-pointer);
 		width: 14px;
 		height: 14px;
 		clip-path: polygon(50% 0%, 100% 100%, 0% 100%);
@@ -263,11 +263,11 @@
 	}
 
 	:global(.marker-start) {
-		background: #22c55e;
+		background: var(--cone-start);
 	}
 
 	:global(.marker-finish) {
-		background: #fff;
+		background: var(--cone-finish);
 		background-image: repeating-conic-gradient(#000 0% 25%, #fff 0% 50%);
 		background-size: 7px 7px;
 	}
@@ -275,7 +275,7 @@
 	:global(.marker-trailer) {
 		width: 40px;
 		height: 20px;
-		background: #64748b;
+		background: var(--cone-trailer);
 		border: 1px solid rgba(255, 255, 255, 0.4);
 		border-radius: 3px;
 		position: relative;
@@ -308,7 +308,7 @@
 		position: absolute;
 		width: 8px;
 		height: 8px;
-		background: #3b82f6;
+		background: var(--handle-resize);
 		border: 1px solid #fff;
 		border-radius: 50%;
 		z-index: 10;
@@ -326,7 +326,7 @@
 		transform: translateX(-50%);
 		width: 10px;
 		height: 10px;
-		background: #f59e0b;
+		background: var(--handle-rotate);
 		border: 1px solid #fff;
 		border-radius: 50%;
 		cursor: grab;

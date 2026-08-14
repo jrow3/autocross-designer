@@ -4,6 +4,7 @@
 	import { mapStore } from '$lib/stores/mapStore.svelte';
 	import { courseStore } from '$lib/stores/courseStore.svelte';
 	import { catmullRomSpline } from '$lib/engine/catmullRom';
+	import { DRIVING_LINE_COLOR } from '$lib/config/palette';
 	import type { LngLat } from '$lib/types/course';
 
 	const SOURCE_ID = 'driving-line-source';
@@ -101,7 +102,7 @@
 			type: 'line',
 			source: SOURCE_ID,
 			paint: {
-				'line-color': '#60a5fa',
+				'line-color': DRIVING_LINE_COLOR,
 				'line-width': 3,
 				'line-dasharray': [2, 2]
 			}
@@ -126,7 +127,7 @@
 	:global(.waypoint-marker) {
 		width: 12px;
 		height: 12px;
-		background: #60a5fa;
+		background: var(--driving-line);
 		border: 2px solid #fff;
 		border-radius: 50%;
 		cursor: pointer;

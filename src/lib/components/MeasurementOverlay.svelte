@@ -4,6 +4,7 @@
 	import { courseStore } from '$lib/stores/courseStore.svelte';
 	import { haversineFeet } from '$lib/engine/geo';
 	import { createMarker, type AnyMarker } from '$lib/engine/markerFactory';
+	import { MEASURE_COLOR } from '$lib/config/palette';
 	import type { LngLat } from '$lib/types/course';
 
 	interface MeasurementVisual {
@@ -90,7 +91,7 @@
 		const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg') as SVGSVGElement;
 		svg.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:5;';
 		const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-		line.setAttribute('stroke', '#f472b6');
+		line.setAttribute('stroke', MEASURE_COLOR);
 		line.setAttribute('stroke-width', '2.5');
 		line.setAttribute('stroke-dasharray', '6,4');
 		svg.appendChild(line);
@@ -275,7 +276,7 @@
 	:global(.measurement-endpoint) {
 		width: 10px;
 		height: 10px;
-		background: #f472b6;
+		background: var(--measure);
 		border: 2px solid #fff;
 		border-radius: 50%;
 		cursor: pointer;
@@ -301,7 +302,7 @@
 		position: absolute;
 		transform: translate(-50%, -100%);
 		background: rgba(0, 0, 0, 0.75);
-		color: #f472b6;
+		color: var(--measure);
 		padding: 2px 6px;
 		border-radius: 3px;
 		font-size: 11px;

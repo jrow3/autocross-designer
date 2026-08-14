@@ -1,6 +1,6 @@
 import type { CourseData, LngLat } from '$lib/types/course';
 import { catmullRomSpline } from './catmullRom';
-import { coneColor, NOTE_COLOR, WORKER_COLOR } from './renderColors';
+import { coneColor, DRIVING_LINE_COLOR, MEASURE_COLOR, NOTE_COLOR, WORKER_COLOR } from '$lib/config/palette';
 
 interface Bounds {
 	minX: number; minY: number; maxX: number; maxY: number;
@@ -51,12 +51,12 @@ export function exportSVG(data: CourseData, title = ''): string {
 		const coords = data.drivingLine.map((wp) => wp.lngLat);
 		const smooth = catmullRomSpline(coords, 20);
 		const d = smooth.map((p, i) => `${i === 0 ? 'M' : 'L'}${tx(p[0], b).toFixed(2)},${ty(p[1], b).toFixed(2)}`).join(' ');
-		lines.push(`<path d="${d}" fill="none" stroke="#60a5fa" stroke-width="2" stroke-dasharray="4,4"/>`);
+		lines.push(`<path d="${d}" fill="none" stroke="${DRIVING_LINE_COLOR}" stroke-width="2" stroke-dasharray="4,4"/>`);
 	}
 
 	// Measurements
 	for (const m of data.measurements) {
-		lines.push(`<line x1="${tx(m.p1[0], b).toFixed(2)}" y1="${ty(m.p1[1], b).toFixed(2)}" x2="${tx(m.p2[0], b).toFixed(2)}" y2="${ty(m.p2[1], b).toFixed(2)}" stroke="#f472b6" stroke-width="1.5" stroke-dasharray="4,3"/>`);
+		lines.push(`<line x1="${tx(m.p1[0], b).toFixed(2)}" y1="${ty(m.p1[1], b).toFixed(2)}" x2="${tx(m.p2[0], b).toFixed(2)}" y2="${ty(m.p2[1], b).toFixed(2)}" stroke="${MEASURE_COLOR}" stroke-width="1.5" stroke-dasharray="4,3"/>`);
 	}
 
 	// Course outline

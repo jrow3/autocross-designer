@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { exportSVG } from './svgExport';
 import { emptyCourse } from './courseSerializer';
-import { CONE_COLORS, NOTE_COLOR, WORKER_COLOR } from './renderColors';
+import { CONE_COLORS, NOTE_COLOR, WORKER_COLOR } from '$lib/config/palette';
 import type { ConeData, CourseData, LngLat } from '$lib/types/course';
 
 function cone(id: string, type: ConeData['type'], lngLat: LngLat): ConeData {
