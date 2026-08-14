@@ -1,7 +1,8 @@
 import type mapboxgl from 'mapbox-gl';
 import type { ImageMap } from './imageMap';
 import type { CourseData } from '$lib/types/course';
-import { BARRIER_COLOR, CONE_COLORS, coneColor, NOTE_COLOR, WORKER_COLOR } from '$lib/config/palette';
+import { catmullRomSpline } from './catmullRom';
+import { BARRIER_COLOR, CONE_COLORS, coneColor, DRIVING_LINE_COLOR, NOTE_COLOR, WORKER_COLOR } from '$lib/config/palette';
 
 export interface CaptureOptions {
 	map: mapboxgl.Map | ImageMap | null;
@@ -12,7 +13,9 @@ export interface CaptureOptions {
 	// Upscales the output canvas; overlay elements render crisply, map tiles
 	// upscale from screen resolution.
 	scale?: number;
-	isLayerVisible: (layer: 'cones' | 'workers' | 'notes' | 'barriers') => boolean;
+	// 'dotted' renders the Nationals-style round-dot driving line.
+	pathStyle?: 'dashed' | 'dotted';
+	isLayerVisible: (layer: 'cones' | 'workers' | 'notes' | 'barriers' | 'drivingLine') => boolean;
 }
 
 export async function captureMapCanvas(options: CaptureOptions): Promise<HTMLCanvasElement | null> {
@@ -84,6 +87,29 @@ export async function captureMapCanvas(options: CaptureOptions): Promise<HTMLCan
 				ctx.shadowBlur = 0;
 			}
 		}
+	}
+
+	// Draw the driving line (the on-screen line is a DOM overlay, not in the GL canvas)
+	if (isLayerVisible('drivingLine') && course.drivingLine.length >= 2) {
+		const smoothed = catmullRomSpline(course.drivingLine.map((wp) => wp.lngLat), 20);
+		ctx.beginPath();
+		smoothed.forEach((p, i) => {
+			const px = map.project(p);
+			if (i === 0) ctx.moveTo(px.x * ratio, px.y * ratio);
+			else ctx.lineTo(px.x * ratio, px.y * ratio);
+		});
+		ctx.strokeStyle = DRIVING_LINE_COLOR;
+		if (options.pathStyle === 'dotted') {
+			ctx.lineWidth = 5 * ratio;
+			ctx.lineCap = 'round';
+			ctx.setLineDash([0.1, 10 * ratio]);
+		} else {
+			ctx.lineWidth = 3 * ratio;
+			ctx.setLineDash([6 * ratio, 5 * ratio]);
+		}
+		ctx.stroke();
+		ctx.setLineDash([]);
+		ctx.lineCap = 'butt';
 	}
 
 	// Draw walls

@@ -34,46 +34,17 @@
 			mapFade: mapStore.mapFade,
 			markerSize: mapStore.markerSize,
 			scale: highRes ? 2 : 1,
-			isLayerVisible: (layer: 'cones' | 'workers' | 'notes' | 'barriers') => layerStore.isVisible(layer)
+			pathStyle: (dottedPath ? 'dotted' : 'dashed') as 'dashed' | 'dotted',
+			isLayerVisible: (layer: 'cones' | 'workers' | 'notes' | 'barriers' | 'drivingLine') =>
+				layerStore.isVisible(layer)
 		};
-	}
-
-	// Nationals-style round dots on the live GL layer while capturing.
-	function withPathStyle<T>(run: () => Promise<T>): Promise<T> {
-		const map = mapStore.map;
-		const canRestyle =
-			dottedPath && map && 'getLayer' in map && map.getLayer('driving-line-layer');
-		if (canRestyle) {
-			map.setPaintProperty('driving-line-layer', 'line-dasharray', [0.05, 3]);
-			map.setPaintProperty('driving-line-layer', 'line-width', 5);
-		}
-		const restore = () => {
-			if (canRestyle) {
-				map.setPaintProperty('driving-line-layer', 'line-dasharray', [2, 2]);
-				map.setPaintProperty('driving-line-layer', 'line-width', 3);
-			}
-		};
-		return run().then(
-			(value) => {
-				restore();
-				return value;
-			},
-			(error) => {
-				restore();
-				throw error;
-			}
-		);
 	}
 
 	async function renderCourseCanvas(): Promise<HTMLCanvasElement | null> {
-		return withPathStyle(async () => {
-			// let the restyled layer render a frame before capture
-			if (dottedPath) await new Promise((r) => setTimeout(r, 120));
-			const mapCanvas = await captureMapCanvas(captureOptions());
-			if (!mapCanvas) return null;
-			const layout: PrintLayout = { title, showConeCount, showLegend, showScaleBar };
-			return renderPrintCanvas(mapCanvas, layout, coneCount(), lineLength());
-		});
+		const mapCanvas = await captureMapCanvas(captureOptions());
+		if (!mapCanvas) return null;
+		const layout: PrintLayout = { title, showConeCount, showLegend, showScaleBar };
+		return renderPrintCanvas(mapCanvas, layout, coneCount(), lineLength());
 	}
 
 	async function exportImage() {

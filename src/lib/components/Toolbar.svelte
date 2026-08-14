@@ -18,16 +18,17 @@
 
 	let toolEls = $state<Record<string, HTMLButtonElement | undefined>>({});
 
-	// Guest tools (alsoIn) lead the strip — e.g. Driving line opens the Design
-	// workflow because the Generator consumes it.
+	// Guest tools (alsoIn) slot in after the mode's opening tool, so Design reads
+	// Sketch → Driving line → cones: rough it out, commit the centerline, generate.
 	let modeTools = $derived.by(() => {
 		const eligible = TOOL_DEFS.filter(
 			(def) =>
 				(def.mode === modeStore.activeMode || def.alsoIn?.some((m) => m === modeStore.activeMode)) &&
 				(!def.imageModeOnly || mapStore.mode === 'image')
 		);
-		const isGuest = (def: (typeof TOOL_DEFS)[number]) => def.mode !== modeStore.activeMode;
-		return [...eligible].sort((a, b) => Number(isGuest(b)) - Number(isGuest(a)));
+		const home = eligible.filter((def) => def.mode === modeStore.activeMode);
+		const guests = eligible.filter((def) => def.mode !== modeStore.activeMode);
+		return [...home.slice(0, 1), ...guests, ...home.slice(1)];
 	});
 	const universalTools = TOOL_DEFS.filter((def) => def.mode === 'universal');
 

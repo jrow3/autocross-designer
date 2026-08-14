@@ -2,7 +2,7 @@
 	import { courseStore } from '$lib/stores/courseStore.svelte';
 	import { mapStore } from '$lib/stores/mapStore.svelte';
 	import { toolStore } from '$lib/stores/toolStore.svelte';
-	import { runGenerator } from '$lib/interactions/generateFlow.svelte';
+	import { runGenerator, useSketchAsDrivingLine } from '$lib/interactions/generateFlow.svelte';
 	import type { GeneratedCourse, GeneratorOptions } from '$lib/engine/generator/courseGenerator';
 	import EmptyState from '../ui/EmptyState.svelte';
 	import Button from '../ui/Button.svelte';
@@ -46,9 +46,18 @@
 				message="Start with a rough centerline"
 				hint="Draw the path you want cars to take — cones generate onto it."
 			/>
-			<Button variant="primary" onclick={() => toolStore.setTool('drivingline')}>
-				Draw the centerline
-			</Button>
+			{#if courseStore.course.sketches.length > 0}
+				<Button variant="primary" onclick={() => useSketchAsDrivingLine()}>
+					Use my sketch as the centerline
+				</Button>
+				<Button variant="secondary" onclick={() => toolStore.setTool('drivingline')}>
+					Draw it point by point
+				</Button>
+			{:else}
+				<Button variant="primary" onclick={() => toolStore.setTool('drivingline')}>
+					Draw the centerline
+				</Button>
+			{/if}
 		{:else}
 			<EmptyState
 				message="Image scale not calibrated"

@@ -4,39 +4,43 @@
 	import { mapStore } from '$lib/stores/mapStore.svelte';
 	import { courseStore } from '$lib/stores/courseStore.svelte';
 	import { catmullRomSpline } from '$lib/engine/catmullRom';
-	import { DRIVING_LINE_COLOR } from '$lib/config/palette';
 	import type { LngLat } from '$lib/types/course';
 
-	const SOURCE_ID = 'driving-line-source';
-	const LAYER_ID = 'driving-line-layer';
-
+	// The line is an SVG overlay repositioned from map.project() — GeoJSON line
+	// layers never render on ImageMap, and this also updates live as waypoints land.
+	let container: HTMLDivElement;
+	let svgEl: SVGSVGElement | null = null;
+	let pathEl: SVGPathElement | null = null;
 	let markers: AnyMarker[] = [];
 
-	function buildGeoJSON() {
-		const coords = courseStore.course.drivingLine.map((wp) => wp.lngLat);
-		const smoothed = coords.length >= 2 ? catmullRomSpline(coords, 20) : coords;
-		return {
-			type: 'FeatureCollection' as const,
-			features: [
-				{
-					type: 'Feature' as const,
-					geometry: {
-						type: 'LineString' as const,
-						coordinates: smoothed
-					},
-					properties: {}
-				}
-			]
-		};
-	}
-
-	function updateLine() {
+	function renderPath() {
 		const map = mapStore.map;
 		if (!map) return;
-		const source = map.getSource(SOURCE_ID) as mapboxgl.GeoJSONSource | undefined;
-		if (source) {
-			source.setData(buildGeoJSON());
+		const coords = courseStore.course.drivingLine.map((wp) => wp.lngLat);
+		if (coords.length < 2) {
+			pathEl?.setAttribute('d', '');
+			return;
 		}
+		if (!svgEl) {
+			svgEl = document.createElementNS('http://www.w3.org/2000/svg', 'svg') as SVGSVGElement;
+			svgEl.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:5;';
+			pathEl = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+			pathEl.setAttribute('fill', 'none');
+			pathEl.setAttribute('stroke', 'var(--driving-line)');
+			pathEl.setAttribute('stroke-width', '3');
+			pathEl.setAttribute('stroke-dasharray', '6 5');
+			pathEl.setAttribute('stroke-linecap', 'round');
+			svgEl.appendChild(pathEl);
+			container.appendChild(svgEl);
+		}
+		const smoothed = catmullRomSpline(coords, 20);
+		const d = smoothed
+			.map((p, i) => {
+				const px = map.project(p as [number, number]);
+				return `${i === 0 ? 'M' : 'L'}${px.x.toFixed(1)} ${px.y.toFixed(1)}`;
+			})
+			.join(' ');
+		pathEl!.setAttribute('d', d);
 	}
 
 	function createWaypointMarker(index: number, lngLat: LngLat): AnyMarker {
@@ -56,13 +60,13 @@
 		marker.on('drag', () => {
 			const pos = marker.getLngLat();
 			courseStore.updateWaypointPosition(index, [pos.lng, pos.lat]);
-			updateLine();
+			renderPath();
 		});
 
 		marker.on('dragend', () => {
 			const pos = marker.getLngLat();
 			courseStore.updateWaypointPosition(index, [pos.lng, pos.lat]);
-			updateLine();
+			renderPath();
 		});
 
 		el.addEventListener('contextmenu', (e) => {
@@ -70,7 +74,7 @@
 			courseStore.pushUndo();
 			courseStore.removeWaypoint(index);
 			rebuildMarkers();
-			updateLine();
+			renderPath();
 		});
 
 		return marker;
@@ -92,38 +96,38 @@
 		const map = mapStore.map;
 		if (!map) return;
 
-		map.addSource(SOURCE_ID, {
-			type: 'geojson',
-			data: buildGeoJSON()
-		});
-
-		map.addLayer({
-			id: LAYER_ID,
-			type: 'line',
-			source: SOURCE_ID,
-			paint: {
-				'line-color': DRIVING_LINE_COLOR,
-				'line-width': 3,
-				'line-dasharray': [2, 2]
-			}
-		});
-
+		map.on('move', renderPath);
+		map.on('zoom', renderPath);
 		rebuildMarkers();
+		renderPath();
 
 		return () => {
+			map.off('move', renderPath);
+			map.off('zoom', renderPath);
 			for (const m of markers) m.remove();
-			if (map.getLayer(LAYER_ID)) map.removeLayer(LAYER_ID);
-			if (map.getSource(SOURCE_ID)) map.removeSource(SOURCE_ID);
+			svgEl?.remove();
 		};
 	});
 
 	$effect(() => {
 		const _waypoints = courseStore.course.drivingLine.length;
-		untrack(() => rebuildMarkers());
+		untrack(() => {
+			rebuildMarkers();
+			renderPath();
+		});
 	});
 </script>
 
+<div class="driving-line-container" bind:this={container}></div>
+
 <style>
+	.driving-line-container {
+		position: absolute;
+		inset: 0;
+		pointer-events: none;
+		z-index: 5;
+	}
+
 	:global(.waypoint-marker) {
 		width: 12px;
 		height: 12px;
