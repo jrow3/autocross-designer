@@ -7,12 +7,15 @@
 	import { ruleStore } from '$lib/stores/ruleStore.svelte';
 	import { setEditCopyHandoff, setFitCourseOnLoad, setSkipBanner } from '$lib/services/handoff';
 	import Copy from '@lucide/svelte/icons/copy';
+	import Layers from '@lucide/svelte/icons/layers';
 	import Button from './ui/Button.svelte';
 	import CourseCanvas from './canvas/CourseCanvas.svelte';
+	import LayerSheet from './LayerSheet.svelte';
 
 	let { title }: { title: string } = $props();
 
 	let canvas = $state<CourseCanvas>();
+	let showLayerSheet = $state(false);
 
 	const toggleableLayers = [
 		{ key: 'cones' as const, label: 'Cones' },
@@ -69,6 +72,15 @@
 			</label>
 		{/each}
 	</div>
+
+	<button class="layers-pill" onclick={() => (showLayerSheet = true)}>
+		<Layers size={16} />
+		Layers
+	</button>
+
+	{#if showLayerSheet}
+		<LayerSheet layers={toggleableLayers} onclose={() => (showLayerSheet = false)} />
+	{/if}
 
 	{#if simStore.result}
 		<div class="sim-strip">
@@ -177,5 +189,68 @@
 		font-size: var(--text-xs);
 		letter-spacing: 0.04em;
 		margin-right: 4px;
+	}
+
+	/* Touch-first viewer: pill + bottom sheet replace the floating card */
+	.layers-pill {
+		display: none;
+		position: absolute;
+		top: var(--space-3);
+		right: var(--space-3);
+		align-items: center;
+		gap: var(--space-2);
+		min-height: 44px;
+		padding: 0 var(--space-4);
+		background: var(--bg-overlay);
+		border: 1px solid var(--border);
+		border-radius: var(--radius-full);
+		color: var(--text-primary);
+		font-size: var(--text-md);
+		font-weight: 600;
+		box-shadow: var(--shadow-md);
+		cursor: pointer;
+		z-index: var(--z-map-ui);
+	}
+
+	@media (max-width: 640px), (pointer: coarse) {
+		.layer-toggles {
+			display: none;
+		}
+
+		.layers-pill {
+			display: inline-flex;
+		}
+
+		.course-title {
+			left: var(--space-3);
+			max-width: 55vw;
+			overflow: hidden;
+			text-overflow: ellipsis;
+			white-space: nowrap;
+		}
+
+		.sim-strip {
+			left: var(--space-3);
+			right: var(--space-3);
+			bottom: calc(72px + env(safe-area-inset-bottom, 0px));
+			justify-content: space-between;
+		}
+
+		.edit-copy {
+			left: var(--space-3);
+			right: var(--space-3);
+			bottom: calc(var(--space-3) + env(safe-area-inset-bottom, 0px));
+		}
+
+		.edit-copy :global(button) {
+			width: 100%;
+			min-height: 44px;
+			justify-content: center;
+		}
+
+		/* pinch/pan is native; the zoom buttons just crowd a phone */
+		.viewer :global(.mapboxgl-ctrl-top-left) {
+			display: none;
+		}
 	}
 </style>
