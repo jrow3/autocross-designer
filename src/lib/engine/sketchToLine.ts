@@ -5,6 +5,62 @@ const DEFAULT_SPACING_FT = 50;
 const FALLBACK_WAYPOINTS = 14;
 const MAX_WAYPOINTS = 60;
 
+// Chain multiple freehand strokes into one path: greedy nearest-endpoint
+// ordering seeded with the first-drawn stroke, flipping strokes (and the seed)
+// so ends meet ends. Users usually draw segments in course order — this keeps
+// that order and just orients and joins them.
+export function stitchSketches(
+	strokes: LngLat[][],
+	mode: 'map' | 'image',
+	feetPerPixel?: number
+): LngLat[] {
+	const usable = strokes.filter((s) => s.length >= 2);
+	if (usable.length === 0) return [];
+	if (usable.length === 1) return usable[0];
+
+	const frame = makeFrame(usable[0][0], mode, feetPerPixel);
+	const toXY = (p: LngLat): [number, number] => (frame ? frame.toFeet(p) : [p[0], p[1]]);
+	const dist = (a: LngLat, b: LngLat): number => {
+		const [ax, ay] = toXY(a);
+		const [bx, by] = toXY(b);
+		return Math.hypot(bx - ax, by - ay);
+	};
+	const nearestTo = (point: LngLat, pool: LngLat[][]): number =>
+		Math.min(...pool.flatMap((s) => [dist(point, s[0]), dist(point, s[s.length - 1])]));
+
+	let chain = [...usable[0]];
+	const remaining = usable.slice(1);
+
+	// If the rest of the course connects better to the seed's start, it was drawn backwards.
+	if (nearestTo(chain[0], remaining) < nearestTo(chain[chain.length - 1], remaining)) {
+		chain = chain.reverse();
+	}
+
+	while (remaining.length > 0) {
+		const tail = chain[chain.length - 1];
+		let bestIdx = 0;
+		let bestReversed = false;
+		let bestDist = Infinity;
+		remaining.forEach((stroke, i) => {
+			const dStart = dist(tail, stroke[0]);
+			const dEnd = dist(tail, stroke[stroke.length - 1]);
+			if (dStart < bestDist) {
+				bestDist = dStart;
+				bestIdx = i;
+				bestReversed = false;
+			}
+			if (dEnd < bestDist) {
+				bestDist = dEnd;
+				bestIdx = i;
+				bestReversed = true;
+			}
+		});
+		const [next] = remaining.splice(bestIdx, 1);
+		chain.push(...(bestReversed ? [...next].reverse() : next));
+	}
+	return chain;
+}
+
 // Turn a dense freehand sketch stroke into evenly spaced driving-line waypoints.
 // Arc-length resampled in real feet where the frame allows; falls back to
 // index-based downsampling when the image scale is uncalibrated.

@@ -48,7 +48,9 @@
 			/>
 			{#if courseStore.course.sketches.length > 0}
 				<Button variant="primary" onclick={() => useSketchAsDrivingLine()}>
-					Use my sketch as the centerline
+					{courseStore.course.sketches.length > 1
+						? `Stitch my ${courseStore.course.sketches.length} sketches into the centerline`
+						: 'Use my sketch as the centerline'}
 				</Button>
 				<Button variant="secondary" onclick={() => toolStore.setTool('drivingline')}>
 					Draw it point by point
