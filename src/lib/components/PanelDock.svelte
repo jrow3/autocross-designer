@@ -7,7 +7,7 @@
 	import CoursePanel from './panels/CoursePanel.svelte';
 	import StatsPanel from './panels/StatsPanel.svelte';
 	import FindingsPanel from './panels/FindingsPanel.svelte';
-	import EmptyState from './ui/EmptyState.svelte';
+	import GeneratorPanel from './panels/GeneratorPanel.svelte';
 	import { ruleStore } from '$lib/stores/ruleStore.svelte';
 	import ShieldCheck from '@lucide/svelte/icons/shield-check';
 	import BarChart3 from '@lucide/svelte/icons/bar-chart-3';
@@ -95,7 +95,7 @@
 			{:else if activeTab === 'stats'}
 				<StatsPanel />
 			{:else if activeTab === 'generator'}
-				<EmptyState message="Course generator is coming soon" hint="Draw a driving line, then generate a cone layout from it." />
+				<GeneratorPanel />
 			{/if}
 		</div>
 	{/if}
