@@ -70,6 +70,14 @@
 		{/each}
 	</div>
 
+	{#if simStore.result}
+		<div class="sim-strip">
+			<span class="sim-stat"><span class="sim-label">Length</span> {simStore.result.lengthFt.toFixed(0)} ft</span>
+			<span class="sim-stat"><span class="sim-label">Est</span> {simStore.result.timeSec.toFixed(1)} s</span>
+			<span class="sim-stat"><span class="sim-label">Max</span> {simStore.result.maxSpeedMph.toFixed(0)} mph</span>
+		</div>
+	{/if}
+
 	<div class="edit-copy">
 		<Button variant="primary" onclick={editCopy} title="Open this course in the editor as your own copy">
 			<Copy size={14} />
@@ -144,5 +152,30 @@
 		bottom: var(--space-5);
 		right: var(--space-5);
 		z-index: var(--z-map-ui);
+	}
+
+	.sim-strip {
+		position: absolute;
+		bottom: var(--space-5);
+		left: var(--space-5);
+		display: flex;
+		gap: var(--space-4);
+		padding: var(--space-2) var(--space-3);
+		background: var(--bg-overlay);
+		border: 1px solid var(--border);
+		border-radius: var(--radius-md);
+		box-shadow: var(--shadow-md);
+		font-family: var(--font-mono);
+		font-size: var(--text-sm);
+		color: var(--text-primary);
+		z-index: var(--z-map-ui);
+	}
+
+	.sim-label {
+		color: var(--text-dim);
+		text-transform: uppercase;
+		font-size: var(--text-xs);
+		letter-spacing: 0.04em;
+		margin-right: 4px;
 	}
 </style>

@@ -9,11 +9,15 @@ export interface CaptureOptions {
 	course: CourseData;
 	mapFade: number;
 	markerSize: number;
+	// Upscales the output canvas; overlay elements render crisply, map tiles
+	// upscale from screen resolution.
+	scale?: number;
 	isLayerVisible: (layer: 'cones' | 'workers' | 'notes' | 'barriers') => boolean;
 }
 
 export async function captureMapCanvas(options: CaptureOptions): Promise<HTMLCanvasElement | null> {
 	const { map, mode, course, mapFade, markerSize, isLayerVisible } = options;
+	const scale = options.scale ?? 1;
 	if (!map) return null;
 
 	if (mode !== 'map') {
@@ -26,12 +30,12 @@ export async function captureMapCanvas(options: CaptureOptions): Promise<HTMLCan
 	if (!mapCanvas) return null;
 
 	const copy = document.createElement('canvas');
-	copy.width = mapCanvas.width;
-	copy.height = mapCanvas.height;
+	copy.width = mapCanvas.width * scale;
+	copy.height = mapCanvas.height * scale;
 	const ctx = copy.getContext('2d')!;
 
 	// Draw map tiles
-	ctx.drawImage(mapCanvas, 0, 0);
+	ctx.drawImage(mapCanvas, 0, 0, copy.width, copy.height);
 
 	// Apply map fade as a filter overlay
 	if (mapFade > 0) {

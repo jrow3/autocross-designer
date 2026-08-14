@@ -32,7 +32,12 @@ function getBounds(pts: LngLat[], padding = 20): Bounds {
 function tx(x: number, b: Bounds): number { return x - b.minX; }
 function ty(y: number, b: Bounds): number { return y - b.minY; }
 
-export function exportSVG(data: CourseData, title = ''): string {
+export interface SvgExportOptions {
+	// 'dotted' renders the Nationals-style round-dot path.
+	pathStyle?: 'dashed' | 'dotted';
+}
+
+export function exportSVG(data: CourseData, title = '', options: SvgExportOptions = {}): string {
 	const pts = allPoints(data);
 	const b = getBounds(pts);
 	const w = b.maxX - b.minX;
@@ -51,7 +56,11 @@ export function exportSVG(data: CourseData, title = ''): string {
 		const coords = data.drivingLine.map((wp) => wp.lngLat);
 		const smooth = catmullRomSpline(coords, 20);
 		const d = smooth.map((p, i) => `${i === 0 ? 'M' : 'L'}${tx(p[0], b).toFixed(2)},${ty(p[1], b).toFixed(2)}`).join(' ');
-		lines.push(`<path d="${d}" fill="none" stroke="${DRIVING_LINE_COLOR}" stroke-width="2" stroke-dasharray="4,4"/>`);
+		const dash =
+			options.pathStyle === 'dotted'
+				? 'stroke-dasharray="0.1,8" stroke-linecap="round" stroke-width="3"'
+				: 'stroke-dasharray="4,4" stroke-width="2"';
+		lines.push(`<path d="${d}" fill="none" stroke="${DRIVING_LINE_COLOR}" ${dash}/>`);
 	}
 
 	// Measurements
@@ -101,8 +110,13 @@ function esc(s: string): string {
 	return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
-export function downloadSVG(data: CourseData, title = '', filename = 'autocross-course.svg'): void {
-	const svg = exportSVG(data, title);
+export function downloadSVG(
+	data: CourseData,
+	title = '',
+	filename = 'autocross-course.svg',
+	options: SvgExportOptions = {}
+): void {
+	const svg = exportSVG(data, title, options);
 	const blob = new Blob([svg], { type: 'image/svg+xml' });
 	const url = URL.createObjectURL(blob);
 	const a = document.createElement('a');
