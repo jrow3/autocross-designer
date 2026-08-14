@@ -9,6 +9,12 @@
 		<circle cx="8" cy="8" r="5.5" fill="var(--cone-regular)" stroke="#fff" stroke-width="1.5" />
 	{:else if tool === 'pointer'}
 		<polygon points="8,2 14,14 2,14" fill="var(--cone-pointer)" stroke="#fff" stroke-width="1.5" />
+	{:else if tool === 'lying'}
+		<ellipse cx="8" cy="9" rx="6" ry="3" fill="var(--cone-lying)" stroke="#fff" stroke-width="1.5" />
+	{:else if tool === 'barrier'}
+		<rect x="1.5" y="6" width="13" height="4" rx="0.5" fill="var(--barrier)" />
+		<line x1="5.5" y1="6" x2="5.5" y2="10" stroke="var(--bg-base)" stroke-width="1" />
+		<line x1="10.5" y1="6" x2="10.5" y2="10" stroke="var(--bg-base)" stroke-width="1" />
 	{:else if tool === 'start-cone'}
 		<circle cx="8" cy="8" r="5.5" fill="var(--cone-start)" stroke="#fff" stroke-width="1.5" />
 	{:else if tool === 'finish-cone'}

@@ -87,6 +87,7 @@
 	   CSS vars); palette.test.ts asserts these mirrors stay in sync. */
 	--cone-regular: #f97316;
 	--cone-pointer: #84cc16;
+	--cone-lying: #fb923c;
 	--cone-start: #22c55e;
 	--cone-finish: #fff;
 	--cone-trailer: #64748b;
@@ -97,6 +98,7 @@
 	--staging: #6495ed;
 	--hazard: #e53e3e;
 	--worker-zone: #ff6b6b;
+	--barrier: #cbd5e1;
 	--handle-resize: #3b82f6;
 	--handle-rotate: #f59e0b;
 

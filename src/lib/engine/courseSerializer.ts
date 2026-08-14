@@ -1,6 +1,8 @@
 import type { CourseData } from '$lib/types/course';
 
-const SCHEMA_VERSION = 1;
+// v2 adds barriers, cone type 'lying', ConeData.mirrorOf, and prosolo metadata.
+// deserialize spreads emptyCourse() first, so a v1 payload migrates by omission.
+const SCHEMA_VERSION = 2;
 const MAX_ITEMS = 5000;
 
 const ARRAY_FIELDS = [
@@ -14,7 +16,8 @@ const ARRAY_FIELDS = [
 	'sketches',
 	'stagingAreas',
 	'workerZones',
-	'hazardMarkers'
+	'hazardMarkers',
+	'barriers'
 ] as const;
 
 export function emptyCourse(): CourseData {
@@ -31,6 +34,7 @@ export function emptyCourse(): CourseData {
 		stagingAreas: [],
 		workerZones: [],
 		hazardMarkers: [],
+		barriers: [],
 		coneNumbers: {},
 		mapCenter: [-96.7694672, 40.8446702],
 		mapZoom: 18

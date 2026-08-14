@@ -39,7 +39,12 @@ export const finishRunoutRule: RuleDef = {
 		const stoppingFt = (finishSpeedFts * finishSpeedFts) / (2 * 0.9 * G);
 		const runoutFt = Math.max(stoppingFt, config.finishRunoutFt);
 
-		if (course.hazardMarkers.length === 0) {
+		const obstacles = [
+			...course.hazardMarkers.map((h) => ({ id: h.id, coordinates: h.coordinates, bufferFeet: h.bufferFeet })),
+			...(course.barriers ?? []).map((b) => ({ id: b.id, coordinates: b.points, bufferFeet: 0 }))
+		];
+
+		if (obstacles.length === 0) {
 			return [{
 				ruleId: 'finish-runout',
 				severity: 'info',
@@ -59,15 +64,15 @@ export const finishRunoutRule: RuleDef = {
 		const end = frame.fromFeet([(-px / len) * runoutFt, (-py / len) * runoutFt]);
 
 		const findings: RuleFinding[] = [];
-		for (const hazard of course.hazardMarkers) {
-			for (const coord of hazard.coordinates) {
+		for (const obstacle of obstacles) {
+			for (const coord of obstacle.coordinates) {
 				const d = pointToSegmentFeet(coord, last.lngLat, end, mode, feetPerPixel);
-				if (d != null && d < RUNOUT_CORRIDOR_FT + hazard.bufferFeet) {
+				if (d != null && d < RUNOUT_CORRIDOR_FT + obstacle.bufferFeet) {
 					findings.push({
 						ruleId: 'finish-runout',
 						severity: 'warn',
 						message: `A hazard sits in the finish runout — cars need ~${runoutFt.toFixed(0)} ft to stop from ${last.speedMph.toFixed(0)} mph.`,
-						relatedIds: [hazard.id],
+						relatedIds: [obstacle.id],
 						location: coord,
 						value: d,
 						limit: runoutFt

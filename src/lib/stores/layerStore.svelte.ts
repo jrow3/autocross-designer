@@ -11,6 +11,7 @@ export type LayerKey =
 	| 'stagingAreas'
 	| 'workerZones'
 	| 'hazardMarkers'
+	| 'barriers'
 	| 'coneNumbers'
 	| 'compliance';
 
@@ -33,6 +34,7 @@ const layers = $state<Layer[]>([
 	{ key: 'stagingAreas', label: 'Staging Areas', visible: true },
 	{ key: 'workerZones', label: 'Worker Zones', visible: true },
 	{ key: 'hazardMarkers', label: 'Safety Zones', visible: true },
+	{ key: 'barriers', label: 'Walls', visible: true },
 	{ key: 'coneNumbers', label: 'Cone Numbers', visible: false },
 	{ key: 'compliance', label: 'Compliance Marks', visible: true }
 ]);

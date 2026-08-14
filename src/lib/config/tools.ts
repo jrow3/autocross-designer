@@ -125,6 +125,24 @@ export const TOOL_DEFS: ToolDef[] = [
 		multiStep: true,
 		cursor: 'crosshair'
 	},
+	// Appended after the digit-mapped tools — these activate by letter hotkey.
+	{
+		tool: 'lying',
+		label: 'Lying cone',
+		description: 'Click to place a knocked-over cone marking an element edge.',
+		mode: 'design',
+		cursor: 'crosshair',
+		hotkey: 'l'
+	},
+	{
+		tool: 'barrier',
+		label: 'Wall',
+		description: 'Click to chain wall segments; switch tools to finish the wall.',
+		mode: 'design',
+		multiStep: true,
+		cursor: 'crosshair',
+		hotkey: 'b'
+	},
 	// --- annotate ---
 	{
 		tool: 'note',

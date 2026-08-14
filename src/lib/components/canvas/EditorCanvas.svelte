@@ -5,7 +5,7 @@
 	import { courseStore } from '$lib/stores/courseStore.svelte';
 	import { layerStore } from '$lib/stores/layerStore.svelte';
 	import { selectionStore } from '$lib/stores/selectionStore.svelte';
-	import { createGateFlow, createSlalomFlow, createScaleFlow, createHazardLineFlow } from '$lib/interactions/placementFlows.svelte';
+	import { createGateFlow, createSlalomFlow, createScaleFlow, createHazardLineFlow, createBarrierFlow } from '$lib/interactions/placementFlows.svelte';
 	import { dispatchClick, dispatchDblClick, type ToolCtx } from '$lib/interactions/toolRouter';
 	import { registerCanvasKeys } from '$lib/interactions/keyScope';
 	import { generateId } from '$lib/engine/id';
@@ -38,6 +38,7 @@
 	const slalomFlow = createSlalomFlow();
 	const scaleFlow = createScaleFlow();
 	const hazardLineFlow = createHazardLineFlow();
+	const barrierFlow = createBarrierFlow();
 
 	let pendingNoteLngLat: LngLat | null = $state(null);
 	let mousePos: LngLat | null = $state(null);
@@ -58,7 +59,7 @@
 				stagingPolygon: stagingPolygonOverlay,
 				workerZonePolygon: workerZonePolygonOverlay
 			},
-			flows: { gate: gateFlow, slalom: slalomFlow, scale: scaleFlow, hazardLine: hazardLineFlow },
+			flows: { gate: gateFlow, slalom: slalomFlow, scale: scaleFlow, hazardLine: hazardLineFlow, barrier: barrierFlow },
 			ui: { openNoteDialog: (l) => (pendingNoteLngLat = l) }
 		};
 	}
@@ -177,6 +178,9 @@
 		if (toolStore.activeTool !== 'hazard-line') {
 			hazardLineFlow.reset();
 		}
+		if (toolStore.activeTool !== 'barrier') {
+			barrierFlow.reset();
+		}
 	});
 
 	// Autosave on course changes
@@ -263,7 +267,7 @@
 	<SlalomDialog
 		start={slalomFlow.start}
 		end={slalomFlow.end}
-		onconfirm={(count, spacing) => slalomFlow.confirm(count, spacing)}
+		onconfirm={(count, spacing, alignEnd) => slalomFlow.confirm(count, spacing, alignEnd)}
 		oncancel={() => slalomFlow.cancel()}
 	/>
 {/if}

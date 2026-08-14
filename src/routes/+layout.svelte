@@ -47,6 +47,12 @@
 			return;
 		}
 
+		if (e.ctrlKey && e.key === 'd') {
+			e.preventDefault();
+			selectionStore.duplicateSelected();
+			return;
+		}
+
 		if (e.ctrlKey || e.metaKey) return;
 
 		const k = e.key.toLowerCase();

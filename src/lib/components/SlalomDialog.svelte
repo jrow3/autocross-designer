@@ -14,9 +14,11 @@
 	}: {
 		start: LngLat;
 		end: LngLat;
-		onconfirm: (count: number, spacingFeet: number) => void;
+		onconfirm: (count: number, spacingFeet: number, alignEnd: boolean) => void;
 		oncancel: () => void;
 	} = $props();
+
+	let alignEnd = $state(true);
 
 	const initialFeet = $derived.by(() => distanceFeet(start, end, mapStore.mode) ?? 0);
 
@@ -73,7 +75,7 @@
 	function handleConfirm() {
 		const count = getCount();
 		if (count < 2) return;
-		onconfirm(count, getSpacing());
+		onconfirm(count, getSpacing(), alignEnd);
 	}
 
 	function handleKeydown(e: KeyboardEvent) {
@@ -82,6 +84,21 @@
 
 	updateFromCount();
 </script>
+
+<style>
+	.align-toggle {
+		flex-direction: row !important;
+		align-items: center;
+		gap: var(--space-2);
+		font-size: var(--text-sm);
+		color: var(--text-secondary);
+		cursor: pointer;
+	}
+
+	.align-toggle input {
+		accent-color: var(--accent);
+	}
+</style>
 
 <BaseDialog title="Slalom Configuration" onclose={oncancel}>
 	{#snippet children()}
@@ -97,6 +114,10 @@
 			<label for="slalom-count">Cone Count</label>
 			<input id="slalom-count" type="number" bind:value={countValue} oninput={updateFromCount} onkeydown={handleKeydown} min="2" step="1" />
 		</div>
+		<label class="dialog-field align-toggle">
+			<input type="checkbox" bind:checked={alignEnd} />
+			<span>Land the last cone exactly on the end point</span>
+		</label>
 		{#if preview}
 			<p class="dialog-desc" style="text-align:center">{preview}</p>
 		{/if}

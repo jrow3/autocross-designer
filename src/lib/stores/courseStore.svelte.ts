@@ -1,4 +1,4 @@
-import { type CourseData, type ConeData, type ObstacleData, type WorkerData, type NoteData, type WaypointData, type MeasurementData, type OutlineSegmentData, type SketchData, type LngLat, type StagingAreaData, type WorkerZoneData, type HazardMarkerData, type ConeNumberMap } from '$lib/types/course';
+import { type CourseData, type ConeData, type ObstacleData, type WorkerData, type NoteData, type WaypointData, type MeasurementData, type OutlineSegmentData, type SketchData, type LngLat, type StagingAreaData, type WorkerZoneData, type HazardMarkerData, type BarrierData, type ConeNumberMap } from '$lib/types/course';
 import { emptyCourse } from '$lib/engine/courseSerializer';
 
 const MAX_SNAPSHOTS = 50;
@@ -201,6 +201,19 @@ export const courseStore = {
 		course.hazardMarkers = [...course.hazardMarkers, marker];
 	},
 
+	addBarrier(barrier: BarrierData): void {
+		course.barriers = [...course.barriers, barrier];
+	},
+
+	appendBarrierPoint(id: string, point: LngLat): void {
+		const barrier = course.barriers.find((b) => b.id === id);
+		if (barrier) barrier.points = [...barrier.points, point];
+	},
+
+	removeBarrier(id: string): void {
+		course.barriers = course.barriers.filter((b) => b.id !== id);
+	},
+
 	removeHazardMarker(id: string): void {
 		course.hazardMarkers = course.hazardMarkers.filter((m) => m.id !== id);
 	},
@@ -242,7 +255,9 @@ export const courseStore = {
 				seen.add(item.id);
 			}
 		}
-		Object.assign(course, data);
+		// Start from a full empty course so fields the payload omits (older
+		// schema versions) never leak through from the previous course.
+		Object.assign(course, { ...emptyCourse(), ...data });
 		undoStack.length = 0;
 		redoStack.length = 0;
 	}

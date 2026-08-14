@@ -1,11 +1,13 @@
 export type Tool =
 	| 'regular'
 	| 'pointer'
+	| 'lying'
 	| 'start-cone'
 	| 'finish-cone'
 	| 'trailer'
 	| 'gate'
 	| 'slalom'
+	| 'barrier'
 	| 'worker'
 	| 'select'
 	| 'drivingline'

@@ -72,11 +72,11 @@ export function createSlalomFlow() {
 				toolStore.clearStatus();
 			}
 		},
-		confirm(count: number, spacingFeet: number): void {
+		confirm(count: number, spacingFeet: number, alignEnd = false): void {
 			if (!start || !end) return;
 			courseStore.pushUndo();
 			const positions = computeSlalomPositions(
-				start, end, { count, spacingFeet: spacingFeet || undefined }, mapStore.mode
+				start, end, { count, spacingFeet: spacingFeet || undefined, alignEnd }, mapStore.mode
 			);
 			for (const pos of positions) {
 				courseStore.addCone({ id: generateId(), type: 'regular', lngLat: pos, lockedTargetId: null });
@@ -154,6 +154,41 @@ export function createScaleFlow() {
 		},
 		reset(): void {
 			clearPoint();
+		}
+	};
+}
+
+export function createBarrierFlow() {
+	let activeBarrierId = $state<string | null>(null);
+
+	function finish(): void {
+		if (activeBarrierId) {
+			// drop degenerate single-point walls
+			const barrier = courseStore.course.barriers.find((b) => b.id === activeBarrierId);
+			if (barrier && barrier.points.length < 2) {
+				courseStore.removeBarrier(activeBarrierId);
+			}
+		}
+		activeBarrierId = null;
+	}
+
+	return {
+		get activeBarrierId() {
+			return activeBarrierId;
+		},
+		handleClick(lngLat: LngLat): void {
+			if (!activeBarrierId) {
+				courseStore.pushUndo();
+				const id = generateId();
+				courseStore.addBarrier({ id, points: [lngLat] });
+				activeBarrierId = id;
+				toolStore.setStatus('Click to extend the wall; switch tools to finish');
+			} else {
+				courseStore.appendBarrierPoint(activeBarrierId, lngLat);
+			}
+		},
+		reset(): void {
+			finish();
 		}
 	};
 }

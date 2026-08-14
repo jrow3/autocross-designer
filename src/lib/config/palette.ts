@@ -7,6 +7,7 @@ import type { ConeType } from '$lib/types/course';
 export const CONE_COLORS: Record<ConeType, string> = {
 	regular: '#f97316',
 	pointer: '#84cc16',
+	lying: '#fb923c',
 	'start-cone': '#22c55e',
 	'finish-cone': '#ffffff',
 	trailer: '#64748b',
@@ -24,6 +25,7 @@ export const DRIVING_LINE_COLOR = '#60a5fa';
 export const STAGING_COLOR = '#6495ed';
 export const HAZARD_COLOR = '#e53e3e';
 export const WORKER_ZONE_COLOR = '#ff6b6b';
+export const BARRIER_COLOR = '#cbd5e1';
 
 export const HANDLE_COLORS = {
 	resize: '#3b82f6',

@@ -38,7 +38,9 @@ describe('TOOL_DEFS modes', () => {
 			'gate',
 			'slalom',
 			'courseoutline',
-			'worker-zone'
+			'worker-zone',
+			'lying',
+			'barrier'
 		]);
 	});
 
@@ -46,9 +48,12 @@ describe('TOOL_DEFS modes', () => {
 		expect(idsFor('annotate')).toEqual(['note', 'drivingline', 'worker']);
 	});
 
-	it('keeps every mode within the 9 digit shortcuts', () => {
+	it('gives every tool past the 9 digit shortcuts a letter hotkey', () => {
 		for (const mode of ['venue', 'design', 'annotate'] as ToolMode[]) {
-			expect(idsFor(mode).length).toBeLessThanOrEqual(9);
+			const beyondDigits = TOOL_DEFS.filter((def) => def.mode === mode).slice(9);
+			for (const def of beyondDigits) {
+				expect(def.hotkey, `${def.tool} needs a hotkey`).toBeTruthy();
+			}
 		}
 	});
 

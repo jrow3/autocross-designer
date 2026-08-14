@@ -16,7 +16,7 @@ function fullCourse(): CourseData {
 		rotation: 45
 	};
 	return {
-		schemaVersion: 1,
+		schemaVersion: 2,
 		cones: [cone],
 		drivingLine: [{ lngLat: A }, { lngLat: B }],
 		measurements: [{ p1: A, p2: B, coneId1: 'c1', coneId2: null }],
@@ -28,6 +28,7 @@ function fullCourse(): CourseData {
 		stagingAreas: [{ id: 'sa1', vertices: [A, B, [-80.05, 40.441]], label: 'Grid A' }],
 		workerZones: [{ id: 'z1', vertices: [A, B, [-80.05, 40.441]], stationNumber: 3 }],
 		hazardMarkers: [{ id: 'h1', type: 'line', coordinates: [A, B], bufferFeet: 10 }],
+		barriers: [{ id: 'b1', points: [A, B] }],
 		coneNumbers: { c1: '301' },
 		mapCenter: A,
 		mapZoom: 18,
@@ -61,8 +62,15 @@ describe('deserialize', () => {
 	});
 
 	it('stamps schemaVersion regardless of input', () => {
-		expect(deserialize({}).schemaVersion).toBe(1);
-		expect(deserialize({ schemaVersion: 99 }).schemaVersion).toBe(1);
+		expect(deserialize({}).schemaVersion).toBe(2);
+		expect(deserialize({ schemaVersion: 99 }).schemaVersion).toBe(2);
+	});
+
+	it('migrates a v1 payload by filling barriers', () => {
+		const v1 = { schemaVersion: 1, cones: [], mapZoom: 17 };
+		const result = deserialize(v1);
+		expect(result.schemaVersion).toBe(2);
+		expect(result.barriers).toEqual([]);
 	});
 });
 

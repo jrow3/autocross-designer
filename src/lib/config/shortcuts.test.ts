@@ -6,9 +6,11 @@ import type { ModeId } from './modes';
 const TOOL_MODES: ModeId[] = ['venue', 'design', 'annotate'];
 
 describe('digitMapFor', () => {
-	it('assigns index + 1 within the mode order', () => {
+	it('assigns index + 1 within the mode order, capped at 9', () => {
 		for (const mode of TOOL_MODES) {
-			const ordered = TOOL_DEFS.filter((def) => def.mode === mode).map((def) => def.tool);
+			const ordered = TOOL_DEFS.filter((def) => def.mode === mode)
+				.slice(0, 9)
+				.map((def) => def.tool);
 			const map = digitMapFor(mode);
 			ordered.forEach((tool, index) => {
 				expect(map[String(index + 1)]).toBe(tool);
@@ -34,8 +36,8 @@ describe('digitMapFor', () => {
 });
 
 describe('UNIVERSAL_KEY_MAP', () => {
-	it('maps v to select and m to measure', () => {
-		expect(UNIVERSAL_KEY_MAP).toEqual({ v: 'select', m: 'measure' });
+	it('maps every declared hotkey', () => {
+		expect(UNIVERSAL_KEY_MAP).toEqual({ v: 'select', m: 'measure', l: 'lying', b: 'barrier' });
 	});
 
 	it('does not collide with digit shortcuts in any mode', () => {
@@ -71,11 +73,12 @@ describe('shortcutLabel', () => {
 		expect(shortcutLabel('hazard-point', 'share')).toBe('1');
 	});
 
-	it('labels every non-universal tool with a digit matching its mode position', () => {
+	it('labels every non-universal tool with its digit or its hotkey letter', () => {
 		for (const mode of TOOL_MODES) {
 			const ordered = TOOL_DEFS.filter((def) => def.mode === (mode as ToolMode));
 			ordered.forEach((def, index) => {
-				expect(shortcutLabel(def.tool, mode)).toBe(String(index + 1));
+				const expected = def.hotkey ? def.hotkey.toUpperCase() : String(index + 1);
+				expect(shortcutLabel(def.tool, mode)).toBe(expected);
 			});
 		}
 	});

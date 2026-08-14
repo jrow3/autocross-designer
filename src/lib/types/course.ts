@@ -1,6 +1,6 @@
 export type LngLat = [number, number];
 
-export type ConeType = 'regular' | 'pointer' | 'start-cone' | 'finish-cone' | 'trailer' | 'staging-grid';
+export type ConeType = 'regular' | 'pointer' | 'lying' | 'start-cone' | 'finish-cone' | 'trailer' | 'staging-grid';
 
 export interface ConeData {
 	id: string;
@@ -10,6 +10,13 @@ export interface ConeData {
 	width?: number;
 	height?: number;
 	rotation?: number;
+	// Set on cones created by the ProSolo mirror; "Re-mirror" replaces them.
+	mirrorOf?: string;
+}
+
+export interface BarrierData {
+	id: string;
+	points: LngLat[];
 }
 
 export interface WaypointData {
@@ -90,12 +97,14 @@ export interface CourseData {
 	stagingAreas: StagingAreaData[];
 	workerZones: WorkerZoneData[];
 	hazardMarkers: HazardMarkerData[];
+	barriers: BarrierData[];
 	coneNumbers: ConeNumberMap;
 	mapCenter: LngLat;
 	mapZoom: number;
 	imageMode?: boolean;
 	imageFileName?: string;
 	imageScale?: number;
+	prosolo?: { axis: [LngLat, LngLat] };
 }
 
 export interface VenueData {

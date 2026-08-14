@@ -10,6 +10,7 @@ import {
 	STAGING_COLOR,
 	HAZARD_COLOR,
 	WORKER_ZONE_COLOR,
+	BARRIER_COLOR,
 	HANDLE_COLORS
 } from './palette';
 
@@ -33,6 +34,7 @@ function normalizeHex(hex: string): string {
 const EXPECTED: Record<string, string> = {
 	'--cone-regular': CONE_COLORS.regular,
 	'--cone-pointer': CONE_COLORS.pointer,
+	'--cone-lying': CONE_COLORS.lying,
 	'--cone-start': CONE_COLORS['start-cone'],
 	'--cone-finish': CONE_COLORS['finish-cone'],
 	'--cone-trailer': CONE_COLORS.trailer,
@@ -43,6 +45,7 @@ const EXPECTED: Record<string, string> = {
 	'--staging': STAGING_COLOR,
 	'--hazard': HAZARD_COLOR,
 	'--worker-zone': WORKER_ZONE_COLOR,
+	'--barrier': BARRIER_COLOR,
 	'--handle-resize': HANDLE_COLORS.resize,
 	'--handle-rotate': HANDLE_COLORS.rotate
 };

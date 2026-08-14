@@ -1,7 +1,7 @@
 import type mapboxgl from 'mapbox-gl';
 import type { ImageMap } from './imageMap';
 import type { CourseData } from '$lib/types/course';
-import { CONE_COLORS, coneColor, NOTE_COLOR, WORKER_COLOR } from '$lib/config/palette';
+import { BARRIER_COLOR, CONE_COLORS, coneColor, NOTE_COLOR, WORKER_COLOR } from '$lib/config/palette';
 
 export interface CaptureOptions {
 	map: mapboxgl.Map | ImageMap | null;
@@ -9,7 +9,7 @@ export interface CaptureOptions {
 	course: CourseData;
 	mapFade: number;
 	markerSize: number;
-	isLayerVisible: (layer: 'cones' | 'workers' | 'notes') => boolean;
+	isLayerVisible: (layer: 'cones' | 'workers' | 'notes' | 'barriers') => boolean;
 }
 
 export async function captureMapCanvas(options: CaptureOptions): Promise<HTMLCanvasElement | null> {
@@ -79,6 +79,22 @@ export async function captureMapCanvas(options: CaptureOptions): Promise<HTMLCan
 				ctx.fill();
 				ctx.shadowBlur = 0;
 			}
+		}
+	}
+
+	// Draw walls
+	if (isLayerVisible('barriers')) {
+		for (const barrier of course.barriers ?? []) {
+			if (barrier.points.length < 2) continue;
+			ctx.beginPath();
+			barrier.points.forEach((p, i) => {
+				const px = map.project(p);
+				if (i === 0) ctx.moveTo(px.x * ratio, px.y * ratio);
+				else ctx.lineTo(px.x * ratio, px.y * ratio);
+			});
+			ctx.strokeStyle = BARRIER_COLOR;
+			ctx.lineWidth = 3 * ratio;
+			ctx.stroke();
 		}
 	}
 

@@ -1,6 +1,6 @@
 import type { CourseData, LngLat } from '$lib/types/course';
 import { catmullRomSpline } from './catmullRom';
-import { coneColor, DRIVING_LINE_COLOR, MEASURE_COLOR, NOTE_COLOR, WORKER_COLOR } from '$lib/config/palette';
+import { BARRIER_COLOR, coneColor, DRIVING_LINE_COLOR, MEASURE_COLOR, NOTE_COLOR, WORKER_COLOR } from '$lib/config/palette';
 
 interface Bounds {
 	minX: number; minY: number; maxX: number; maxY: number;
@@ -62,6 +62,12 @@ export function exportSVG(data: CourseData, title = ''): string {
 	// Course outline
 	for (const s of data.courseOutline) {
 		lines.push(`<path d="M${tx(s.p1[0], b).toFixed(2)},${ty(s.p1[1], b).toFixed(2)} Q${tx(s.cp[0], b).toFixed(2)},${ty(s.cp[1], b).toFixed(2)} ${tx(s.p2[0], b).toFixed(2)},${ty(s.p2[1], b).toFixed(2)}" fill="none" stroke="#fff" stroke-width="2"/>`);
+	}
+
+	// Walls
+	for (const barrier of data.barriers ?? []) {
+		const pts = barrier.points.map((p) => `${tx(p[0], b).toFixed(2)},${ty(p[1], b).toFixed(2)}`).join(' ');
+		lines.push(`<polyline points="${pts}" fill="none" stroke="${BARRIER_COLOR}" stroke-width="3"/>`);
 	}
 
 	// Cones

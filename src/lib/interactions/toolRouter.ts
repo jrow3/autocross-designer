@@ -24,6 +24,7 @@ export interface FlowRefs {
 	slalom: { handleClick(lngLat: LngLat): void };
 	scale: { handleClick(lngLat: LngLat): void };
 	hazardLine: { handleClick(lngLat: LngLat): void };
+	barrier: { handleClick(lngLat: LngLat): void };
 }
 
 export interface ToolCtx {

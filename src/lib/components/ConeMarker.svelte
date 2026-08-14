@@ -19,6 +19,7 @@
 	const MARKER_CLASSES: Record<string, string> = {
 		regular: 'marker-regular',
 		pointer: 'marker-pointer',
+		lying: 'marker-lying',
 		'start-cone': 'marker-start',
 		'finish-cone': 'marker-finish',
 		trailer: 'marker-trailer',
@@ -270,6 +271,13 @@
 		height: 14px;
 		clip-path: polygon(50% 0%, 100% 100%, 0% 100%);
 		border-radius: 0;
+	}
+
+	:global(.marker-lying) {
+		width: 16px;
+		height: 8px;
+		background: var(--cone-lying);
+		border-radius: 4px;
 	}
 
 	:global(.marker-start) {

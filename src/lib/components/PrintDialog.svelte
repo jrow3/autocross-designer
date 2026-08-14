@@ -30,7 +30,7 @@
 			course: courseStore.course,
 			mapFade: mapStore.mapFade,
 			markerSize: mapStore.markerSize,
-			isLayerVisible: (layer: 'cones' | 'workers' | 'notes') => layerStore.isVisible(layer)
+			isLayerVisible: (layer: 'cones' | 'workers' | 'notes' | 'barriers') => layerStore.isVisible(layer)
 		};
 	}
 

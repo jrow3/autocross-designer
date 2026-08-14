@@ -1,6 +1,10 @@
 import { courseStore } from './courseStore.svelte';
+import { mapStore } from './mapStore.svelte';
+import { generateId } from '$lib/engine/id';
+import { feetToLngLatOffset, feetToPixelOffset } from '$lib/engine/geo';
+import type { LngLat } from '$lib/types/course';
 
-export type SelectableType = 'cone' | 'worker' | 'note' | 'measurement' | 'outline' | 'hazard' | 'staging-area' | 'worker-zone' | 'sketch';
+export type SelectableType = 'cone' | 'worker' | 'note' | 'measurement' | 'outline' | 'hazard' | 'barrier' | 'staging-area' | 'worker-zone' | 'sketch';
 
 export interface SelectedItem {
 	type: SelectableType;
@@ -95,6 +99,9 @@ export const selectionStore = {
 				case 'hazard':
 					courseStore.removeHazardMarker(item.id);
 					break;
+				case 'barrier':
+					courseStore.removeBarrier(item.id);
+					break;
 				case 'staging-area':
 					courseStore.removeStagingArea(item.id);
 					break;
@@ -113,6 +120,43 @@ export const selectionStore = {
 			courseStore.removeOutlineSegment(idx);
 		}
 		selected.length = 0;
+	},
+
+	// Clone selected cones and workers 10 ft to the south-east; selection moves
+	// to the clones so a second Ctrl+D keeps stepping.
+	duplicateSelected(): void {
+		const items = selected.filter((s) => s.type === 'cone' || s.type === 'worker');
+		if (items.length === 0) return;
+		courseStore.pushUndo();
+
+		const offset = (p: LngLat): LngLat =>
+			mapStore.mode === 'image'
+				? feetToPixelOffset(p, 135, 10, mapStore.feetPerPixel ?? 1)
+				: feetToLngLatOffset(p, 135, 10);
+
+		const clones: SelectedItem[] = [];
+		for (const item of items) {
+			if (item.type === 'cone') {
+				const cone = courseStore.course.cones.find((c) => c.id === item.id);
+				if (!cone) continue;
+				const id = generateId();
+				courseStore.addCone({ ...cone, id, lngLat: offset(cone.lngLat), mirrorOf: undefined });
+				clones.push({ type: 'cone', id });
+			} else {
+				const worker = courseStore.course.workers.find((w) => w.id === item.id);
+				if (!worker) continue;
+				const id = generateId();
+				courseStore.addWorker({
+					...worker,
+					id,
+					number: courseStore.course.workers.length + 1,
+					lngLat: offset(worker.lngLat)
+				});
+				clones.push({ type: 'worker', id });
+			}
+		}
+		selected.length = 0;
+		selected.push(...clones);
 	},
 
 	startBox(x: number, y: number): void {

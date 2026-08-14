@@ -7,11 +7,14 @@ export const UNIVERSAL_KEY_MAP: Record<string, Tool> = Object.fromEntries(
 	TOOL_DEFS.filter((def) => def.hotkey).map((def) => [def.hotkey as string, def.tool])
 );
 
-// Digit shortcuts for a mode, derived from TOOL_DEFS order within that mode: index + 1.
+// Digit shortcuts for a mode, derived from TOOL_DEFS order within that mode:
+// index + 1, capped at 9 — later tools rely on their letter hotkey.
 export function digitMapFor(mode: ModeId): Record<string, Tool> {
 	if (mode === 'share') return {};
 	return Object.fromEntries(
-		TOOL_DEFS.filter((def) => def.mode === mode).map((def, index) => [String(index + 1), def.tool])
+		TOOL_DEFS.filter((def) => def.mode === mode)
+			.slice(0, 9)
+			.map((def, index) => [String(index + 1), def.tool])
 	);
 }
 

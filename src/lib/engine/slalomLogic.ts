@@ -5,6 +5,13 @@ export interface SlalomConfig {
 	count: number;
 	spacingFeet?: number;
 	totalLengthFeet?: number;
+	// Recompute spacing so the last cone lands exactly on the clicked end point.
+	alignEnd?: boolean;
+}
+
+export function suggestSlalomCount(distFt: number, spacingFt: number): number {
+	if (distFt <= 0 || spacingFt <= 0) return 2;
+	return Math.max(2, Math.floor(distFt / spacingFt) + 1);
 }
 
 export function computeSlalomPositions(
@@ -28,7 +35,9 @@ export function computeSlalomPositions(
 		clickedFeet != null && clickedFeet > 0 ? lineLenCoord / clickedFeet : 0;
 
 	let stepCoord: number;
-	if (config.spacingFeet != null && config.spacingFeet > 0 && coordPerFoot > 0) {
+	if (config.alignEnd) {
+		stepCoord = count > 1 ? lineLenCoord / (count - 1) : 0;
+	} else if (config.spacingFeet != null && config.spacingFeet > 0 && coordPerFoot > 0) {
 		stepCoord = config.spacingFeet * coordPerFoot;
 	} else if (config.totalLengthFeet != null && config.totalLengthFeet > 0 && coordPerFoot > 0) {
 		stepCoord = (config.totalLengthFeet / (count - 1)) * coordPerFoot;

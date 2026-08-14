@@ -40,7 +40,25 @@ export function pickCourseItem(course: CourseData, lngLat: LngLat): SelectedItem
 			}
 		}
 	}
+	for (const barrier of course.barriers ?? []) {
+		for (let i = 1; i < barrier.points.length; i++) {
+			if (pointToSegmentDistSq(lngLat, barrier.points[i - 1], barrier.points[i]) < BARRIER_PICK_DEG * BARRIER_PICK_DEG) {
+				return { type: 'barrier', id: barrier.id };
+			}
+		}
+	}
 	return null;
+}
+
+const BARRIER_PICK_DEG = 0.0001;
+
+function pointToSegmentDistSq(p: LngLat, a: LngLat, b: LngLat): number {
+	const dx = b[0] - a[0];
+	const dy = b[1] - a[1];
+	const lenSq = dx * dx + dy * dy;
+	if (lenSq === 0) return distSq(p, a);
+	const t = Math.max(0, Math.min(1, ((p[0] - a[0]) * dx + (p[1] - a[1]) * dy) / lenSq));
+	return distSq(p, [a[0] + t * dx, a[1] + t * dy]);
 }
 
 export interface BoxRect {
@@ -85,6 +103,9 @@ export function itemsInBox(course: CourseData, rect: BoxRect, project: ProjectFn
 	}
 	for (const sketch of course.sketches) {
 		if (sketch.points.some(inBox)) items.push({ type: 'sketch', id: sketch.id });
+	}
+	for (const barrier of course.barriers ?? []) {
+		if (barrier.points.some(inBox)) items.push({ type: 'barrier', id: barrier.id });
 	}
 	return items;
 }
