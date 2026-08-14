@@ -97,7 +97,7 @@ describe('generateCourse', () => {
 		expect(result.cones.some((c) => c.type === 'pointer')).toBe(true);
 	});
 
-	it('strings inside cones along a long sweeper, not just one apex', () => {
+	it('marks a sweeper with a single apex unless big sweepers is on', () => {
 		// straight in, 180-degree sweeper of radius 80, straight out
 		const center = feetToLngLatOffset(feetToLngLatOffset(ORIGIN, 90, 400), 0, 80);
 		const wps: WaypointData[] = [wp(ORIGIN)];
@@ -105,17 +105,22 @@ describe('generateCourse', () => {
 			wps.push(wp(feetToLngLatOffset(center, deg, 80)));
 		}
 		wps.push(wp(feetToLngLatOffset(feetToLngLatOffset(center, 0, 80), 0, 400)));
-		const result = generateCourse(wps, BASE, 'map', undefined, NO_OBSTACLES)!;
 
-		// count regular cones hugging the inside of the arc (radius - 2 ft offset)
-		const arcCones = result.cones.filter((c) => {
-			if (c.type !== 'regular') return false;
-			const dLng = (c.lngLat[0] - center[0]) * 278000;
-			const dLat = (c.lngLat[1] - center[1]) * 364000;
-			const dist = Math.hypot(dLng, dLat);
-			return dist > 65 && dist < 82;
-		});
-		expect(arcCones.length).toBeGreaterThanOrEqual(4);
+		const arcCones = (result: NonNullable<ReturnType<typeof generateCourse>>) =>
+			result.cones.filter((c) => {
+				if (c.type !== 'regular') return false;
+				const dLng = (c.lngLat[0] - center[0]) * 278000;
+				const dLat = (c.lngLat[1] - center[1]) * 364000;
+				const dist = Math.hypot(dLng, dLat);
+				return dist > 65 && dist < 82;
+			});
+
+		const apexOnly = generateCourse(wps, BASE, 'map', undefined, NO_OBSTACLES)!;
+		expect(arcCones(apexOnly).length).toBeLessThanOrEqual(2);
+		expect(arcCones(apexOnly).length).toBeGreaterThanOrEqual(1);
+
+		const ringed = generateCourse(wps, { ...BASE, biggerSweeper: true }, 'map', undefined, NO_OBSTACLES)!;
+		expect(arcCones(ringed).length).toBeGreaterThanOrEqual(4);
 	});
 
 	it('flips cone side through an S-curve', () => {

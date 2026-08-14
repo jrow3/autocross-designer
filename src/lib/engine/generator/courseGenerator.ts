@@ -25,7 +25,6 @@ interface Tuning {
 	slalomSpacingFt: number;
 	gateEveryFt: number;
 	gateWidthFt: number;
-	cornerConeSpacingFt: number;
 	finishRunoutFt: number;
 }
 
@@ -37,10 +36,13 @@ function tuningFor(options: GeneratorOptions): Tuning {
 		slalomSpacingFt: (national ? 70 : 60) * lean,
 		gateEveryFt: (national ? 110 : 90) * lean,
 		gateWidthFt: options.widerGates ? 25 : 20,
-		cornerConeSpacingFt: (options.biggerSweeper ? 25 : 35) * lean,
 		finishRunoutFt: 150
 	};
 }
+
+// Ignore direction wobbles shorter than this when splitting a corner section
+// into its individual corners.
+const MIN_LOBE_FT = 20;
 
 export function generateCourse(
 	waypoints: WaypointData[],
@@ -131,13 +133,9 @@ export function generateCourse(
 			continue;
 		}
 
-		// corner: a string of inside cones along the arc, pointer at the apex.
-		// The side is chosen per sample — merged S-sections flip direction
-		// mid-segment, so the segment's net turn sign is not enough.
-		let apexIdx = segment.startIdx;
-		for (let i = segment.startIdx; i <= segment.endIdx; i++) {
-			if (path.radiusFt[i] < path.radiusFt[apexIdx]) apexIdx = i;
-		}
+		// corner: one apex cone per actual corner. A classified segment can merge
+		// several corners (an S, linked bends), so split it into lobes of constant
+		// turn direction and mark each lobe's tightest point.
 		const insideAt = (i: number): [number, number] => {
 			// frame-space direction toward the curvature center; handedness undoes
 			// the real-world correction turnSign carries
@@ -146,17 +144,45 @@ export function generateCourse(
 			return [n[0] * sign, n[1] * sign];
 		};
 
-		if (segLenFt >= tuning.cornerConeSpacingFt * 1.5) {
-			for (let at = segStartFt; at <= segStartFt + segLenFt; at += tuning.cornerConeSpacingFt) {
+		const lobes: { apexIdx: number; startIdx: number; endIdx: number }[] = [];
+		let lobeSign = 0;
+		for (let i = segment.startIdx; i <= segment.endIdx; i++) {
+			const sign = path.turnSign[i];
+			if (sign === 0) continue;
+			const current = lobes[lobes.length - 1];
+			if (sign !== lobeSign || !current) {
+				lobes.push({ apexIdx: i, startIdx: i, endIdx: i });
+				lobeSign = sign;
+			} else {
+				current.endIdx = i;
+				if (path.radiusFt[i] < path.radiusFt[current.apexIdx]) current.apexIdx = i;
+			}
+		}
+		const realLobes = lobes.filter(
+			(lobe) => path.s[lobe.endIdx] - path.s[lobe.startIdx] >= MIN_LOBE_FT
+		);
+		if (realLobes.length === 0) {
+			// flat/noisy fallback: single apex at the segment's tightest point
+			let apexIdx = segment.startIdx;
+			for (let i = segment.startIdx; i <= segment.endIdx; i++) {
+				if (path.radiusFt[i] < path.radiusFt[apexIdx]) apexIdx = i;
+			}
+			realLobes.push({ apexIdx, startIdx: segment.startIdx, endIdx: segment.endIdx });
+		}
+		for (const lobe of realLobes) {
+			if (path.s[lobe.apexIdx] > suppressedFromFt) continue;
+			addCone(lobe.apexIdx, insideAt(lobe.apexIdx), 2, 'regular');
+			addCone(lobe.apexIdx, insideAt(lobe.apexIdx), 5, 'pointer');
+		}
+
+		// long arcs only ring up when explicitly asked for
+		if (options.biggerSweeper && segment.arcDeg >= 150) {
+			for (let at = segStartFt; at <= segStartFt + segLenFt; at += 25) {
 				if (at > suppressedFromFt) continue;
 				const i = idxAtArc(at);
 				addCone(i, insideAt(i), 2, 'regular');
 			}
-			if (segment.arcDeg >= 150) stats.sweeperCount++;
-		}
-		if (path.s[apexIdx] <= suppressedFromFt) {
-			addCone(apexIdx, insideAt(apexIdx), 2, 'regular');
-			addCone(apexIdx, insideAt(apexIdx), 5, 'pointer');
+			stats.sweeperCount++;
 		}
 		if (segStartFt > 30 && segStartFt < suppressedFromFt) addGate(segment.startIdx, tuning.gateWidthFt);
 	}
