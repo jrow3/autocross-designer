@@ -25,6 +25,7 @@ interface Tuning {
 	slalomSpacingFt: number;
 	gateEveryFt: number;
 	gateWidthFt: number;
+	cornerConeSpacingFt: number;
 	finishRunoutFt: number;
 }
 
@@ -36,6 +37,7 @@ function tuningFor(options: GeneratorOptions): Tuning {
 		slalomSpacingFt: (national ? 70 : 60) * lean,
 		gateEveryFt: (national ? 110 : 90) * lean,
 		gateWidthFt: options.widerGates ? 25 : 20,
+		cornerConeSpacingFt: (options.biggerSweeper ? 25 : 35) * lean,
 		finishRunoutFt: 150
 	};
 }
@@ -129,26 +131,30 @@ export function generateCourse(
 			continue;
 		}
 
-		// corner: entry/exit gates plus inside apex (or sweeper ring)
+		// corner: a string of inside cones along the arc, pointer at the apex.
+		// The side is chosen per sample — merged S-sections flip direction
+		// mid-segment, so the segment's net turn sign is not enough.
 		let apexIdx = segment.startIdx;
 		for (let i = segment.startIdx; i <= segment.endIdx; i++) {
 			if (path.radiusFt[i] < path.radiusFt[apexIdx]) apexIdx = i;
 		}
-		// direction toward the curvature center, in frame coordinates
-		const insideSign = segment.turnSign * frame.handedness || 1;
 		const insideAt = (i: number): [number, number] => {
+			// frame-space direction toward the curvature center; handedness undoes
+			// the real-world correction turnSign carries
+			const sign = ((path.turnSign[i] || segment.turnSign || 1) * frame.handedness) as number;
 			const n = normalAt(i);
-			return [n[0] * insideSign, n[1] * insideSign];
+			return [n[0] * sign, n[1] * sign];
 		};
 
-		if (options.biggerSweeper && segment.arcDeg >= 150) {
-			for (let at = segStartFt; at <= segStartFt + segLenFt; at += 25) {
+		if (segLenFt >= tuning.cornerConeSpacingFt * 1.5) {
+			for (let at = segStartFt; at <= segStartFt + segLenFt; at += tuning.cornerConeSpacingFt) {
 				if (at > suppressedFromFt) continue;
 				const i = idxAtArc(at);
 				addCone(i, insideAt(i), 2, 'regular');
 			}
-			stats.sweeperCount++;
-		} else if (path.s[apexIdx] <= suppressedFromFt) {
+			if (segment.arcDeg >= 150) stats.sweeperCount++;
+		}
+		if (path.s[apexIdx] <= suppressedFromFt) {
 			addCone(apexIdx, insideAt(apexIdx), 2, 'regular');
 			addCone(apexIdx, insideAt(apexIdx), 5, 'pointer');
 		}

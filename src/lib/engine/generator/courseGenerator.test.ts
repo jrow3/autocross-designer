@@ -97,6 +97,54 @@ describe('generateCourse', () => {
 		expect(result.cones.some((c) => c.type === 'pointer')).toBe(true);
 	});
 
+	it('strings inside cones along a long sweeper, not just one apex', () => {
+		// straight in, 180-degree sweeper of radius 80, straight out
+		const center = feetToLngLatOffset(feetToLngLatOffset(ORIGIN, 90, 400), 0, 80);
+		const wps: WaypointData[] = [wp(ORIGIN)];
+		for (let deg = 180; deg >= 0; deg -= 20) {
+			wps.push(wp(feetToLngLatOffset(center, deg, 80)));
+		}
+		wps.push(wp(feetToLngLatOffset(feetToLngLatOffset(center, 0, 80), 0, 400)));
+		const result = generateCourse(wps, BASE, 'map', undefined, NO_OBSTACLES)!;
+
+		// count regular cones hugging the inside of the arc (radius - 2 ft offset)
+		const arcCones = result.cones.filter((c) => {
+			if (c.type !== 'regular') return false;
+			const dLng = (c.lngLat[0] - center[0]) * 278000;
+			const dLat = (c.lngLat[1] - center[1]) * 364000;
+			const dist = Math.hypot(dLng, dLat);
+			return dist > 65 && dist < 82;
+		});
+		expect(arcCones.length).toBeGreaterThanOrEqual(4);
+	});
+
+	it('flips cone side through an S-curve', () => {
+		// left arc around c1 then right arc around c2 — inside flips halfway
+		const c1 = feetToLngLatOffset(feetToLngLatOffset(ORIGIN, 90, 250), 0, 90);
+		const c2 = feetToLngLatOffset(c1, 90, 180);
+		const wps: WaypointData[] = [wp(ORIGIN)];
+		for (let deg = 180; deg >= 90; deg -= 15) {
+			wps.push(wp(feetToLngLatOffset(c1, deg, 90)));
+		}
+		for (let deg = 270; deg <= 360; deg += 15) {
+			wps.push(wp(feetToLngLatOffset(c2, deg, 90)));
+		}
+		wps.push(wp(feetToLngLatOffset(feetToLngLatOffset(c2, 0, 90), 90, 250)));
+		const result = generateCourse(wps, BASE, 'map', undefined, NO_OBSTACLES)!;
+
+		const nearCenter = (center: [number, number]) =>
+			result.cones.filter((c) => {
+				if (c.type !== 'regular') return false;
+				const dLng = (c.lngLat[0] - center[0]) * 278000;
+				const dLat = (c.lngLat[1] - center[1]) * 364000;
+				const dist = Math.hypot(dLng, dLat);
+				return dist > 74 && dist < 92;
+			});
+		// inside cones hug each arc's own center — both halves get some
+		expect(nearCenter(c1).length).toBeGreaterThanOrEqual(1);
+		expect(nearCenter(c2).length).toBeGreaterThanOrEqual(1);
+	});
+
 	it('produces congruent output in image mode', () => {
 		// same hook, 0.25 ft/px
 		const img = (p: [number, number]): WaypointData => wp([p[0], p[1]] as LngLat);
