@@ -140,8 +140,10 @@
 		const map = mapStore.map;
 		if (savedScale && map && 'setScale' in map) {
 			map.setScale(savedScale);
+			mapStore.setFeetPerPixel(savedScale);
 			toolStore.setStatus(`Scale: ${savedScale.toFixed(4)} ft/px`);
 		} else {
+			mapStore.setFeetPerPixel(null);
 			toolStore.setTool('scale');
 			toolStore.setStatus('Calibrate: click two points with a known distance');
 		}

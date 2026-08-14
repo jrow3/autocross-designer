@@ -8,6 +8,8 @@ let mode = $state<'map' | 'image'>('map');
 let zoom = $state(17);
 let markerSize = $state(1.0);
 let mapFade = $state(0);
+// Image-mode calibration, reactive so sim/rules can key off it. null = uncalibrated.
+let feetPerPixel = $state<number | null>(null);
 
 let gridActive = $state(false);
 let gridSpacingFt = $state(10);
@@ -33,6 +35,10 @@ export const mapStore = {
 
 	get mapFade() {
 		return mapFade;
+	},
+
+	get feetPerPixel() {
+		return feetPerPixel;
 	},
 
 	get gridActive() {
@@ -69,6 +75,10 @@ export const mapStore = {
 
 	setMapFade(f: number): void {
 		mapFade = f;
+	},
+
+	setFeetPerPixel(v: number | null): void {
+		feetPerPixel = v;
 	},
 
 	setGridActive(a: boolean): void {

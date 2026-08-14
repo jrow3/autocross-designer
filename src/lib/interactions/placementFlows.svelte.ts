@@ -140,8 +140,10 @@ export function createScaleFlow() {
 			if (map && 'setScale' in map) {
 				map.setScale(feetPerPixel);
 			}
-			// Persist so saved/shared image courses reopen already calibrated.
+			// Persist so saved/shared image courses reopen already calibrated,
+			// and mirror reactively so sim/rules can key off it.
 			courseStore.course.imageScale = feetPerPixel;
+			mapStore.setFeetPerPixel(feetPerPixel);
 			showDialog = false;
 			toolStore.setStatus(`Scale: ${feetPerPixel.toFixed(4)} ft/px`);
 		},
