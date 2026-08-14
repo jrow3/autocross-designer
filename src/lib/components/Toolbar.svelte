@@ -18,11 +18,17 @@
 
 	let toolEls = $state<Record<string, HTMLButtonElement | undefined>>({});
 
-	let modeTools = $derived(
-		TOOL_DEFS.filter(
-			(def) => def.mode === modeStore.activeMode && (!def.imageModeOnly || mapStore.mode === 'image')
-		)
-	);
+	// Guest tools (alsoIn) lead the strip — e.g. Driving line opens the Design
+	// workflow because the Generator consumes it.
+	let modeTools = $derived.by(() => {
+		const eligible = TOOL_DEFS.filter(
+			(def) =>
+				(def.mode === modeStore.activeMode || def.alsoIn?.some((m) => m === modeStore.activeMode)) &&
+				(!def.imageModeOnly || mapStore.mode === 'image')
+		);
+		const isGuest = (def: (typeof TOOL_DEFS)[number]) => def.mode !== modeStore.activeMode;
+		return [...eligible].sort((a, b) => Number(isGuest(b)) - Number(isGuest(a)));
+	});
 	const universalTools = TOOL_DEFS.filter((def) => def.mode === 'universal');
 
 	function runConeNumbering() {

@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { courseStore } from '$lib/stores/courseStore.svelte';
 	import { mapStore } from '$lib/stores/mapStore.svelte';
+	import { toolStore } from '$lib/stores/toolStore.svelte';
 	import { runGenerator } from '$lib/interactions/generateFlow.svelte';
 	import type { GeneratedCourse, GeneratorOptions } from '$lib/engine/generator/courseGenerator';
 	import EmptyState from '../ui/EmptyState.svelte';
@@ -40,12 +41,20 @@
 	</p>
 
 	{#if !canGenerate}
-		<EmptyState
-			message={courseStore.course.drivingLine.length < 2 ? 'No driving line yet' : 'Image scale not calibrated'}
-			hint={courseStore.course.drivingLine.length < 2
-				? 'Sketch the centerline with the Driving line tool first.'
-				: 'Calibrate the image scale in Venue mode first.'}
-		/>
+		{#if courseStore.course.drivingLine.length < 2}
+			<EmptyState
+				message="Start with a rough centerline"
+				hint="Draw the path you want cars to take — cones generate onto it."
+			/>
+			<Button variant="primary" onclick={() => toolStore.setTool('drivingline')}>
+				Draw the centerline
+			</Button>
+		{:else}
+			<EmptyState
+				message="Image scale not calibrated"
+				hint="Calibrate the image scale in Venue mode first."
+			/>
+		{/if}
 	{:else}
 		<label class="field">
 			<span>Event level</span>

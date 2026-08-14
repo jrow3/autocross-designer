@@ -13,6 +13,9 @@ export interface ToolDef {
 	// Letter shortcut, consulted before the digit map. Universal tools use these;
 	// mode tools may claim one when a digit is too obscure.
 	hotkey?: string;
+	// Extra modes whose toolbar also shows this tool. Digit shortcuts stay
+	// derived from the home mode only — cross-mode tools should carry a hotkey.
+	alsoIn?: ToolMode[];
 }
 
 // Array order within a mode = toolbar order = digit shortcut (1-9).
@@ -163,9 +166,11 @@ export const TOOL_DEFS: ToolDef[] = [
 	{
 		tool: 'drivingline',
 		label: 'Driving line',
-		description: 'Click to add waypoints; the line is smoothed automatically.',
+		description: 'Click to add waypoints; the line is smoothed automatically. The Generator places cones onto it.',
 		mode: 'annotate',
-		cursor: 'crosshair'
+		cursor: 'crosshair',
+		hotkey: 'd',
+		alsoIn: ['design']
 	},
 	{
 		tool: 'worker',
