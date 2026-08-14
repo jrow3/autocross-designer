@@ -1,6 +1,6 @@
 import { courseStore } from './courseStore.svelte';
 
-export type SelectableType = 'cone' | 'worker' | 'measurement' | 'outline' | 'hazard' | 'staging-area' | 'worker-zone' | 'sketch';
+export type SelectableType = 'cone' | 'worker' | 'note' | 'measurement' | 'outline' | 'hazard' | 'staging-area' | 'worker-zone' | 'sketch';
 
 export interface SelectedItem {
 	type: SelectableType;
@@ -64,6 +64,9 @@ export const selectionStore = {
 		for (const w of courseStore.course.workers) {
 			selected.push({ type: 'worker', id: w.id });
 		}
+		for (const n of courseStore.course.notes) {
+			selected.push({ type: 'note', id: n.id });
+		}
 		courseStore.course.measurements.forEach((_, i) => {
 			selected.push({ type: 'measurement', id: String(i) });
 		});
@@ -85,6 +88,9 @@ export const selectionStore = {
 					break;
 				case 'worker':
 					courseStore.removeWorker(item.id);
+					break;
+				case 'note':
+					courseStore.removeNote(item.id);
 					break;
 				case 'hazard':
 					courseStore.removeHazardMarker(item.id);

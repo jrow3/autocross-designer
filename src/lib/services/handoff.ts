@@ -15,6 +15,19 @@ export function consumeEditCopyHandoff(): unknown {
 	return JSON.parse(raw);
 }
 
+// Read image-mode metadata without consuming the handoff, so the editor can
+// route an image course to the reload-image prompt instead of the satellite map.
+export function peekEditCopyHandoff(): { imageMode?: boolean; imageFileName?: string } | null {
+	const raw = sessionStorage.getItem(EDIT_COPY_KEY);
+	if (!raw) return null;
+	try {
+		const parsed = JSON.parse(raw) as { imageMode?: boolean; imageFileName?: string };
+		return { imageMode: parsed.imageMode, imageFileName: parsed.imageFileName };
+	} catch {
+		return null;
+	}
+}
+
 export function setFitCourseOnLoad(): void {
 	sessionStorage.setItem(FIT_COURSE_KEY, 'true');
 }

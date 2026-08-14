@@ -5,10 +5,7 @@ import { mapStore } from '$lib/stores/mapStore.svelte';
 import { computeGateCones, computeDirectionalCones } from '$lib/engine/gateLogic';
 import { computeSlalomPositions } from '$lib/engine/slalomLogic';
 import { createMarker, type AnyMarker } from '$lib/engine/markerFactory';
-
-function generateId(): string {
-	return Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
-}
+import { generateId } from '$lib/engine/id';
 
 export function createGateFlow() {
 	let center = $state<LngLat | null>(null);
@@ -143,6 +140,8 @@ export function createScaleFlow() {
 			if (map && 'setScale' in map) {
 				map.setScale(feetPerPixel);
 			}
+			// Persist so saved/shared image courses reopen already calibrated.
+			courseStore.course.imageScale = feetPerPixel;
 			showDialog = false;
 			toolStore.setStatus(`Scale: ${feetPerPixel.toFixed(4)} ft/px`);
 		},

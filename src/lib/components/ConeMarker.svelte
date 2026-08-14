@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import { mapStore } from '$lib/stores/mapStore.svelte';
 	import { courseStore } from '$lib/stores/courseStore.svelte';
+	import { toolStore } from '$lib/stores/toolStore.svelte';
 	import { computePointerRotation } from '$lib/engine/coneLogic';
 	import { createMarker, wrapForMapbox, type AnyMarker } from '$lib/engine/markerFactory';
 	import { selectionStore } from '$lib/stores/selectionStore.svelte';
@@ -13,6 +14,7 @@
 	let innerEl: HTMLDivElement | null = null;
 	let isResizing = false;
 	let isRotating = false;
+	let justDragged = false;
 
 	const MARKER_CLASSES: Record<string, string> = {
 		regular: 'marker-regular',
@@ -36,15 +38,18 @@
 		if (label) inner.textContent = label;
 
 		if (isResizable) {
-			const w = cone.width ?? defaultW;
-			const h = cone.height ?? defaultH;
-			inner.style.width = `${w}px`;
-			inner.style.height = `${h}px`;
-			inner.style.fontSize = `${Math.max(6, Math.min(w, h) * 0.25)}px`;
+			applySize(inner, cone.width ?? defaultW, cone.height ?? defaultH);
 		}
 
 		innerEl = inner;
 		return { wrapper: wrapForMapbox(mapStore.mode, inner), inner };
+	}
+
+	// Size flows through CSS vars so hot paths set two properties, not style strings;
+	// the font-size derives from them in CSS.
+	function applySize(el: HTMLElement, w: number, h: number) {
+		el.style.setProperty('--w', `${w}px`);
+		el.style.setProperty('--h', `${h}px`);
 	}
 
 	function applyTransform() {
@@ -104,9 +109,7 @@
 			if (corner.includes('w')) newW = Math.max(20, startW - dx);
 			if (corner.includes('s')) newH = Math.max(10, startH + dy);
 			if (corner.includes('n')) newH = Math.max(10, startH - dy);
-			el.style.width = `${newW}px`;
-			el.style.height = `${newH}px`;
-			el.style.fontSize = `${Math.max(6, Math.min(newW, newH) * 0.25)}px`;
+			applySize(el, newW, newH);
 			courseStore.updateConeDimensions(cone.id, newW, newH);
 		};
 
@@ -177,6 +180,7 @@
 
 		marker.on('drag', () => {
 			if (isResizing || isRotating) return;
+			justDragged = true;
 			const pos = marker!.getLngLat();
 			const newPos: LngLat = [pos.lng, pos.lat];
 			courseStore.updateConePosition(cone.id, newPos);
@@ -198,10 +202,20 @@
 		});
 
 		if (!readonly) {
-			wrapper.addEventListener('contextmenu', (e) => {
-				e.preventDefault();
-				courseStore.pushUndo();
-				courseStore.removeCone(cone.id);
+			// Select tool: click selects (shift extends); deletion is select + Delete.
+			wrapper.addEventListener('click', (e) => {
+				if (toolStore.activeTool !== 'select') return;
+				e.stopPropagation();
+				if (justDragged) {
+					justDragged = false;
+					return;
+				}
+				if (e.shiftKey) {
+					selectionStore.toggle('cone', cone.id);
+				} else {
+					selectionStore.clear();
+					selectionStore.select('cone', cone.id);
+				}
 			});
 		}
 
@@ -223,11 +237,7 @@
 			applyTransform();
 
 			if (isResizable && innerEl) {
-				const w = cone.width ?? defaultW;
-				const h = cone.height ?? defaultH;
-				innerEl.style.width = `${w}px`;
-				innerEl.style.height = `${h}px`;
-				innerEl.style.fontSize = `${Math.max(6, Math.min(w, h) * 0.25)}px`;
+				applySize(innerEl, cone.width ?? defaultW, cone.height ?? defaultH);
 			}
 		}
 	});
@@ -273,8 +283,8 @@
 	}
 
 	:global(.marker-trailer) {
-		width: 40px;
-		height: 20px;
+		width: var(--w, 40px);
+		height: var(--h, 20px);
 		background: var(--cone-trailer);
 		border: 1px solid rgba(255, 255, 255, 0.4);
 		border-radius: 3px;
@@ -284,13 +294,13 @@
 		justify-content: center;
 		color: #fff;
 		font-weight: bold;
-		font-size: 8px;
+		font-size: max(6px, calc(min(var(--w, 40px), var(--h, 20px)) * 0.25));
 		overflow: hidden;
 	}
 
 	:global(.marker-staging-grid) {
-		width: 60px;
-		height: 40px;
+		width: var(--w, 60px);
+		height: var(--h, 40px);
 		background: rgba(100, 116, 139, 0.5);
 		border: 2px dashed rgba(255, 255, 255, 0.5);
 		border-radius: 3px;
@@ -298,7 +308,7 @@
 		align-items: center;
 		justify-content: center;
 		color: #fff;
-		font-size: 10px;
+		font-size: max(6px, calc(min(var(--w, 60px), var(--h, 40px)) * 0.25));
 		font-weight: bold;
 		position: relative;
 		overflow: hidden;

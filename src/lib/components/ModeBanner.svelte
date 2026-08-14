@@ -5,9 +5,11 @@
 	import Button from './ui/Button.svelte';
 
 	let {
-		onselect
+		onselect,
+		reloadPrompt = null
 	}: {
 		onselect: (mode: 'map' | 'image', imageSrc?: string, fileName?: string) => void;
+		reloadPrompt?: { fileName?: string } | null;
 	} = $props();
 
 	let showGallery = $state(false);
@@ -50,23 +52,39 @@
 <div class="landing-overlay">
 	{#if !showGallery}
 		<div class="landing">
-			<h1 class="landing-title">Autocross Course Designer</h1>
-			<p class="landing-tagline">Lay out cones, gates, and slaloms on your actual lot.</p>
-			<div class="mode-cards">
-				<button class="mode-card" onclick={selectMap}>
-					<span class="mode-icon"><Map size={32} /></span>
-					<span class="mode-name">Live Map</span>
-					<span class="mode-desc">Design on live satellite imagery of your venue</span>
-				</button>
-				<button class="mode-card" onclick={openGallery}>
-					<span class="mode-icon"><Image size={32} /></span>
-					<span class="mode-name">Lot Image</span>
-					<span class="mode-desc">Calibrate and design over an uploaded lot image</span>
-				</button>
-			</div>
-			<p class="landing-hint">
-				Click the <strong>?</strong> in the top bar anytime for tools & shortcuts
-			</p>
+			{#if reloadPrompt}
+				<h1 class="landing-title">Reload venue image</h1>
+				<p class="landing-tagline">
+					This course was built on the venue image
+					{#if reloadPrompt.fileName}<strong>{reloadPrompt.fileName}</strong>{:else}you uploaded{/if}
+					— choose that image to continue.
+				</p>
+				<div class="mode-cards">
+					<button class="mode-card" onclick={openGallery}>
+						<span class="mode-icon"><Image size={32} /></span>
+						<span class="mode-name">Choose Image</span>
+						<span class="mode-desc">Pick or upload the lot image this course was designed on</span>
+					</button>
+				</div>
+			{:else}
+				<h1 class="landing-title">Autocross Course Designer</h1>
+				<p class="landing-tagline">Lay out cones, gates, and slaloms on your actual lot.</p>
+				<div class="mode-cards">
+					<button class="mode-card" onclick={selectMap}>
+						<span class="mode-icon"><Map size={32} /></span>
+						<span class="mode-name">Live Map</span>
+						<span class="mode-desc">Design on live satellite imagery of your venue</span>
+					</button>
+					<button class="mode-card" onclick={openGallery}>
+						<span class="mode-icon"><Image size={32} /></span>
+						<span class="mode-name">Lot Image</span>
+						<span class="mode-desc">Calibrate and design over an uploaded lot image</span>
+					</button>
+				</div>
+				<p class="landing-hint">
+					Click the <strong>?</strong> in the top bar anytime for tools & shortcuts
+				</p>
+			{/if}
 		</div>
 	{:else}
 		<div class="gallery-panel">

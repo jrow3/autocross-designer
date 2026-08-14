@@ -3,6 +3,7 @@
 	import { onMount } from 'svelte';
 	import { mapStore } from '$lib/stores/mapStore.svelte';
 	import { courseStore } from '$lib/stores/courseStore.svelte';
+	import { toolStore } from '$lib/stores/toolStore.svelte';
 	import { selectionStore } from '$lib/stores/selectionStore.svelte';
 	import type { WorkerData } from '$lib/types/course';
 
@@ -11,6 +12,7 @@
 	let marker: AnyMarker | null = null;
 	let numberSpan: HTMLSpanElement | null = null;
 	let markerEl: HTMLDivElement | null = null;
+	let justDragged = false;
 
 	function showContextMenu(e: MouseEvent) {
 		e.preventDefault();
@@ -102,12 +104,31 @@
 			courseStore.pushUndo();
 		});
 
+		marker.on('drag', () => {
+			justDragged = true;
+		});
+
 		marker.on('dragend', () => {
 			const pos = marker!.getLngLat();
 			courseStore.updateWorkerPosition(worker.id, [pos.lng, pos.lat]);
 		});
 
+		// Right-click keeps the rename/delete menu; plain click selects.
 		wrapper.addEventListener('contextmenu', showContextMenu);
+		wrapper.addEventListener('click', (e) => {
+			if (toolStore.activeTool !== 'select') return;
+			e.stopPropagation();
+			if (justDragged) {
+				justDragged = false;
+				return;
+			}
+			if (e.shiftKey) {
+				selectionStore.toggle('worker', worker.id);
+			} else {
+				selectionStore.clear();
+				selectionStore.select('worker', worker.id);
+			}
+		});
 
 		return () => {
 			marker?.remove();

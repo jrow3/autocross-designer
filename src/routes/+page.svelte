@@ -1,7 +1,7 @@
 <script lang="ts">
 	import TopBar from '$lib/components/TopBar.svelte';
 	import ModeToolbar from '$lib/components/ModeToolbar.svelte';
-	import MapContainer from '$lib/components/MapContainer.svelte';
+	import EditorCanvas from '$lib/components/canvas/EditorCanvas.svelte';
 	import ToolStatus from '$lib/components/ToolStatus.svelte';
 	import OnboardingHints from '$lib/components/OnboardingHints.svelte';
 	import VenuePanel from '$lib/components/VenuePanel.svelte';
@@ -16,7 +16,7 @@
 	import { downloadSVG } from '$lib/engine/svgExport';
 	import type { SavedCourse } from '$lib/services/courseService';
 
-	let mapContainer = $state<MapContainer>();
+	let editorCanvas = $state<EditorCanvas>();
 
 	let showSaveDialog = $state(false);
 	let showPrintDialog = $state(false);
@@ -30,7 +30,7 @@
 		if (!file) return;
 		const data = deserialize(await importJSON(file));
 		courseStore.load(data);
-		mapContainer?.fitBoundsToCourse(data);
+		editorCanvas?.fitBoundsToCourse(data);
 		(e.target as HTMLInputElement).value = '';
 	}
 </script>
@@ -47,7 +47,7 @@
 	<ModeToolbar onloadvenue={() => (showVenuePanel = true)} />
 	<div class="main-row">
 		<div class="map-wrapper">
-			<MapContainer bind:this={mapContainer} />
+			<EditorCanvas bind:this={editorCanvas} />
 			<ToolStatus />
 			<OnboardingHints />
 			{#if showVenuePanel}
@@ -61,7 +61,7 @@
 			onimport={() => fileInput.click()}
 			onprint={() => (showPrintDialog = true)}
 			onexportsvg={() => downloadSVG(courseStore.course)}
-			onfitcourse={(data) => mapContainer?.fitBoundsToCourse(data)}
+			onfitcourse={(data) => editorCanvas?.fitBoundsToCourse(data)}
 			oncourseopened={(course) => activeCourse = course}
 		/>
 	</div>

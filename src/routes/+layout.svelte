@@ -8,12 +8,16 @@
 	import { modeStore } from '$lib/stores/modeStore.svelte';
 	import { UNIVERSAL_KEY_MAP, digitMapFor } from '$lib/config/shortcuts';
 	import { TOOL_DEFS } from '$lib/config/tools';
+	import { dispatchCanvasKeys } from '$lib/interactions/keyScope';
 	import Toast from '$lib/components/ui/Toast.svelte';
 
 	let { children } = $props();
 
 	function handleKeydown(e: KeyboardEvent) {
 		if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+
+		// Canvas-scoped keys (polygon close/cancel, sketch delete) run first.
+		if (dispatchCanvasKeys(e)) return;
 
 		if (e.key === 'Escape') {
 			toolStore.setTool('select');

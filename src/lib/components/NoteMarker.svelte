@@ -3,6 +3,8 @@
 	import { onMount } from 'svelte';
 	import { mapStore } from '$lib/stores/mapStore.svelte';
 	import { courseStore } from '$lib/stores/courseStore.svelte';
+	import { toolStore } from '$lib/stores/toolStore.svelte';
+	import { selectionStore } from '$lib/stores/selectionStore.svelte';
 	import type { NoteData } from '$lib/types/course';
 
 	let { note }: { note: NoteData } = $props();
@@ -10,6 +12,7 @@
 	let marker: AnyMarker | null = null;
 	let numberSpan: HTMLSpanElement | null = null;
 	let innerEl: HTMLDivElement | null = null;
+	let justDragged = false;
 
 	onMount(() => {
 		const map = mapStore.map;
@@ -35,15 +38,29 @@
 			courseStore.pushUndo();
 		});
 
+		marker.on('drag', () => {
+			justDragged = true;
+		});
+
 		marker.on('dragend', () => {
 			const pos = marker!.getLngLat();
 			courseStore.updateNotePosition(note.id, [pos.lng, pos.lat]);
 		});
 
-		wrapper.addEventListener('contextmenu', (e) => {
-			e.preventDefault();
-			courseStore.pushUndo();
-			courseStore.removeNote(note.id);
+		// Select tool: click selects (shift extends); deletion is select + Delete.
+		wrapper.addEventListener('click', (e) => {
+			if (toolStore.activeTool !== 'select') return;
+			e.stopPropagation();
+			if (justDragged) {
+				justDragged = false;
+				return;
+			}
+			if (e.shiftKey) {
+				selectionStore.toggle('note', note.id);
+			} else {
+				selectionStore.clear();
+				selectionStore.select('note', note.id);
+			}
 		});
 
 		return () => {
@@ -59,6 +76,12 @@
 				marker.setLngLat([lng, lat]);
 			}
 			if (innerEl) innerEl.title = note.text;
+		}
+	});
+
+	$effect(() => {
+		if (innerEl) {
+			innerEl.classList.toggle('multi-selected', selectionStore.isSelected('note', note.id));
 		}
 	});
 </script>

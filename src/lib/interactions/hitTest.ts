@@ -65,6 +65,9 @@ export function itemsInBox(course: CourseData, rect: BoxRect, project: ProjectFn
 	for (const worker of course.workers) {
 		if (inBox(worker.lngLat)) items.push({ type: 'worker', id: worker.id });
 	}
+	for (const note of course.notes) {
+		if (inBox(note.lngLat)) items.push({ type: 'note', id: note.id });
+	}
 	course.measurements.forEach((m, i) => {
 		if (inBox(m.p1) || inBox(m.p2)) items.push({ type: 'measurement', id: String(i) });
 	});
