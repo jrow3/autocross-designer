@@ -43,10 +43,11 @@
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
-		height: 28px;
-		padding: 0 var(--space-3);
-		background: var(--bg-base);
+		height: 34px;
+		padding: 0 var(--space-4);
+		background: var(--bg-surface);
 		border-top: 1px solid var(--border-subtle);
+		box-shadow: var(--edge-highlight);
 		flex-shrink: 0;
 		gap: var(--space-4);
 	}
@@ -55,7 +56,7 @@
 		display: flex;
 		align-items: center;
 		gap: var(--space-2);
-		font-size: var(--text-sm);
+		font-size: var(--text-md);
 		color: var(--text-muted);
 		min-width: 0;
 	}
@@ -94,19 +95,25 @@
 	.stat {
 		display: flex;
 		align-items: baseline;
-		gap: var(--space-1);
-		font-size: var(--text-sm);
+		gap: var(--space-2);
+		font-size: var(--text-md);
+	}
+
+	.stat + .stat {
+		padding-left: var(--space-4);
+		border-left: 1px solid var(--border-subtle);
 	}
 
 	.stat-label {
 		color: var(--text-dim);
 		text-transform: uppercase;
 		font-size: var(--text-xs);
-		letter-spacing: 0.04em;
+		font-weight: 600;
+		letter-spacing: 0.06em;
 	}
 
 	.stat-value {
 		font-family: var(--font-mono);
-		color: var(--text-secondary);
+		color: var(--text-primary);
 	}
 </style>

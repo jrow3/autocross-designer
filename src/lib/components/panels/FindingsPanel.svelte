@@ -63,7 +63,7 @@
 	{/if}
 
 	<section class="rules-section">
-		<SectionHeader title="Checks" collapsible bind:collapsed={rulesCollapsed} count={ALL_RULES.length} />
+		<SectionHeader title="Rules" collapsible bind:collapsed={rulesCollapsed} count={ALL_RULES.length} />
 		{#if !rulesCollapsed}
 			<div class="rules-list">
 				{#each ALL_RULES as rule (rule.id)}
@@ -120,19 +120,25 @@
 		align-items: flex-start;
 		gap: var(--space-2);
 		width: 100%;
-		padding: var(--space-2);
-		background: var(--bg-surface);
+		padding: var(--space-2) var(--space-3);
+		background: var(--bg-base);
 		border: 1px solid var(--border-subtle);
+		border-left: 3px solid var(--text-dim);
 		border-radius: var(--radius-md);
 		color: var(--text-secondary);
 		font-size: var(--text-sm);
 		text-align: left;
 		cursor: pointer;
-		transition: border-color 0.12s ease;
+		transition: border-color 0.12s ease, background 0.12s ease;
 	}
 
 	.finding:hover {
 		border-color: var(--border-focus);
+		background: var(--bg-elevated);
+	}
+
+	.finding.warn {
+		border-left-color: var(--warning);
 	}
 
 	.finding-icon {
@@ -143,7 +149,7 @@
 	}
 
 	.finding.warn .finding-icon {
-		color: #f59e0b;
+		color: var(--warning);
 	}
 
 	.finding-text {

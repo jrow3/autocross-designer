@@ -18,7 +18,6 @@
 
 <div class="stats-panel">
 	<section>
-		<SectionHeader title="Flow Analysis" />
 		<label class="profile-row">
 			<span>Car class</span>
 			<select
@@ -72,7 +71,12 @@
 		display: flex;
 		flex-direction: column;
 		gap: var(--space-2);
-		margin-bottom: var(--space-4);
+	}
+
+	section + section {
+		margin-top: var(--space-3);
+		padding-top: var(--space-3);
+		border-top: 1px solid var(--border-subtle);
 	}
 
 	.profile-row {

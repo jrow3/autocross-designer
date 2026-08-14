@@ -32,7 +32,8 @@
 
 <header class="top-bar">
 	<div class="brand-group">
-		<span class="brand">Autocross Course Designer</span>
+		<span class="brand-mark" aria-hidden="true"></span>
+		<span class="brand">Course<span class="brand-accent">Designer</span></span>
 	</div>
 	<div class="center-group">
 		<ModeSwitcher />
@@ -88,7 +89,8 @@
 	.top-bar {
 		display: flex;
 		align-items: center;
-		padding: var(--space-1) var(--space-2);
+		height: 52px;
+		padding: 0 var(--space-4);
 		background: var(--bg-base);
 		border-bottom: 1px solid var(--border-subtle);
 		gap: var(--space-2);
@@ -99,13 +101,29 @@
 		flex: 1;
 		display: flex;
 		align-items: center;
+		gap: var(--space-2);
+	}
+
+	.brand-mark {
+		width: 12px;
+		height: 12px;
+		background: var(--cone-regular);
+		border-radius: 3px 3px 5px 5px;
+		transform: rotate(45deg);
+		box-shadow: 0 0 8px rgba(249, 115, 22, 0.35);
 	}
 
 	.brand {
-		font-size: var(--text-md);
-		font-weight: 650;
+		font-size: var(--text-lg);
+		font-weight: 700;
+		letter-spacing: -0.01em;
 		color: var(--text-primary);
 		white-space: nowrap;
+	}
+
+	.brand-accent {
+		color: var(--text-dim);
+		font-weight: 550;
 	}
 
 	.center-group {

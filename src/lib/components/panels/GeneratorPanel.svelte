@@ -3,7 +3,6 @@
 	import { mapStore } from '$lib/stores/mapStore.svelte';
 	import { runGenerator } from '$lib/interactions/generateFlow.svelte';
 	import type { GeneratedCourse, GeneratorOptions } from '$lib/engine/generator/courseGenerator';
-	import SectionHeader from '../ui/SectionHeader.svelte';
 	import EmptyState from '../ui/EmptyState.svelte';
 	import Button from '../ui/Button.svelte';
 	import Dices from '@lucide/svelte/icons/dices';
@@ -35,7 +34,6 @@
 </script>
 
 <div class="generator-panel">
-	<SectionHeader title="Course Generator" />
 	<p class="explain">
 		Draw a rough driving line, then generate — cones land on the straights and
 		corners. Replaces generated cone types; walls and annotations stay.

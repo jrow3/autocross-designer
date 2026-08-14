@@ -1,11 +1,11 @@
 <script lang="ts">
 	import TopBar from '$lib/components/TopBar.svelte';
-	import ToolRail from '$lib/components/ToolRail.svelte';
+	import Toolbar from '$lib/components/Toolbar.svelte';
 	import EditorCanvas from '$lib/components/canvas/EditorCanvas.svelte';
 	import OnboardingHints from '$lib/components/OnboardingHints.svelte';
 	import VenuePanel from '$lib/components/VenuePanel.svelte';
 	import AnnotationListPanel from '$lib/components/AnnotationListPanel.svelte';
-	import PanelDock from '$lib/components/PanelDock.svelte';
+	import SidePanel from '$lib/components/SidePanel.svelte';
 	import StatusBar from '$lib/components/StatusBar.svelte';
 	import SaveShareDialog from '$lib/components/SaveShareDialog.svelte';
 	import PrintDialog from '$lib/components/PrintDialog.svelte';
@@ -77,8 +77,8 @@
 		onhelp={() => (showHelpDialog = true)}
 		onnewtemplate={() => (showTemplateGallery = true)}
 	/>
+	<Toolbar onloadvenue={() => (showVenuePanel = true)} />
 	<div class="main-row">
-		<ToolRail onloadvenue={() => (showVenuePanel = true)} />
 		<div class="map-wrapper">
 			<EditorCanvas bind:this={editorCanvas} />
 			<OnboardingHints />
@@ -87,7 +87,7 @@
 			{/if}
 			<AnnotationListPanel />
 		</div>
-		<PanelDock
+		<SidePanel
 			onsave={() => (showSaveDialog = true)}
 			onexport={() => exportJSON(courseStore.course)}
 			onimport={() => fileInput.click()}
