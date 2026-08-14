@@ -6,7 +6,9 @@
 	import type { CourseData } from '$lib/types/course';
 	import CoursePanel from './panels/CoursePanel.svelte';
 	import StatsPanel from './panels/StatsPanel.svelte';
+	import FindingsPanel from './panels/FindingsPanel.svelte';
 	import EmptyState from './ui/EmptyState.svelte';
+	import { ruleStore } from '$lib/stores/ruleStore.svelte';
 	import ShieldCheck from '@lucide/svelte/icons/shield-check';
 	import BarChart3 from '@lucide/svelte/icons/bar-chart-3';
 	import WandSparkles from '@lucide/svelte/icons/wand-sparkles';
@@ -72,7 +74,11 @@
 					collapsed = false;
 				}}
 			>
-				{#if tab.id === 'findings'}<ShieldCheck size={16} />
+				{#if tab.id === 'findings'}
+					<ShieldCheck size={16} />
+					{#if ruleStore.warnCount > 0}
+						<span class="warn-badge">{ruleStore.warnCount}</span>
+					{/if}
 				{:else if tab.id === 'stats'}<BarChart3 size={16} />
 				{:else if tab.id === 'generator'}<WandSparkles size={16} />
 				{:else}<FolderOpen size={16} />{/if}
@@ -85,7 +91,7 @@
 			{#if activeTab === 'course'}
 				<CoursePanel {onsave} {onexport} {onimport} {onprint} {onexportsvg} {onfitcourse} {oncourseopened} />
 			{:else if activeTab === 'findings'}
-				<EmptyState message="Compliance checks are coming soon" hint="Rules will validate gates, speeds, and spacing as you design." />
+				<FindingsPanel />
 			{:else if activeTab === 'stats'}
 				<StatsPanel />
 			{:else if activeTab === 'generator'}
@@ -116,6 +122,7 @@
 	}
 
 	.tab-btn {
+		position: relative;
 		display: flex;
 		align-items: center;
 		justify-content: center;
@@ -141,6 +148,22 @@
 
 	.collapse-btn {
 		margin-bottom: var(--space-2);
+	}
+
+	.warn-badge {
+		position: absolute;
+		top: -2px;
+		right: -2px;
+		min-width: 14px;
+		height: 14px;
+		padding: 0 3px;
+		background: #f59e0b;
+		color: #1a1a1a;
+		border-radius: var(--radius-full);
+		font-size: 9px;
+		font-weight: 700;
+		line-height: 14px;
+		text-align: center;
 	}
 
 	.dock-body {

@@ -58,7 +58,7 @@ function nearestNeighborOrder(cones: ConeData[]): ConeData[] {
 	return result;
 }
 
-function segmentsIntersect(a1: LngLat, a2: LngLat, b1: LngLat, b2: LngLat): boolean {
+export function segmentsIntersect(a1: LngLat, a2: LngLat, b1: LngLat, b2: LngLat): boolean {
 	const d1x = a2[0] - a1[0], d1y = a2[1] - a1[1];
 	const d2x = b2[0] - b1[0], d2y = b2[1] - b1[1];
 	const cross = d1x * d2y - d1y * d2x;

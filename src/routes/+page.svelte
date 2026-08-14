@@ -13,6 +13,7 @@
 	import { onMount } from 'svelte';
 	import { courseStore } from '$lib/stores/courseStore.svelte';
 	import { simStore } from '$lib/stores/simStore.svelte';
+	import { ruleStore } from '$lib/stores/ruleStore.svelte';
 	import { deserialize } from '$lib/engine/courseSerializer';
 	import { exportJSON, importJSON } from '$lib/services/jsonExport';
 	import { downloadSVG } from '$lib/engine/svgExport';
@@ -27,7 +28,14 @@
 	let activeCourse = $state<SavedCourse | null>(null);
 	let fileInput: HTMLInputElement;
 
-	onMount(() => simStore.init());
+	onMount(() => {
+		const stopSim = simStore.init();
+		const stopRules = ruleStore.init();
+		return () => {
+			stopSim();
+			stopRules();
+		};
+	});
 
 	async function handleImport(e: Event) {
 		const file = (e.target as HTMLInputElement).files?.[0];

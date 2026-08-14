@@ -4,6 +4,7 @@
 	import { courseStore } from '$lib/stores/courseStore.svelte';
 	import { layerStore } from '$lib/stores/layerStore.svelte';
 	import { simStore } from '$lib/stores/simStore.svelte';
+	import { ruleStore } from '$lib/stores/ruleStore.svelte';
 	import { setEditCopyHandoff, setFitCourseOnLoad, setSkipBanner } from '$lib/services/handoff';
 	import Copy from '@lucide/svelte/icons/copy';
 	import Button from './ui/Button.svelte';
@@ -36,7 +37,12 @@
 	onMount(() => {
 		mapStore.setMode('map');
 		canvas?.initMapMode();
-		return simStore.init();
+		const stopSim = simStore.init();
+		const stopRules = ruleStore.init();
+		return () => {
+			stopSim();
+			stopRules();
+		};
 	});
 </script>
 
