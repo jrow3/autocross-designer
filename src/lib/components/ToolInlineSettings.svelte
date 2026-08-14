@@ -1,7 +1,10 @@
 <script lang="ts">
 	import { toolStore } from '$lib/stores/toolStore.svelte';
 
-	let { anchor }: { anchor?: HTMLElement } = $props();
+	let {
+		anchor,
+		placement = 'bottom'
+	}: { anchor?: HTMLElement; placement?: 'bottom' | 'right' } = $props();
 
 	let isHazardToolActive = $derived(
 		toolStore.activeTool === 'hazard-point' || toolStore.activeTool === 'hazard-line'
@@ -18,6 +21,13 @@
 		if (!anchor) return;
 		const rect = anchor.getBoundingClientRect();
 		const width = popoverEl?.offsetWidth ?? 0;
+		if (placement === 'right') {
+			pos = {
+				left: Math.min(rect.right + 8, window.innerWidth - width - 4),
+				top: rect.top
+			};
+			return;
+		}
 		pos = {
 			left: Math.max(4, Math.min(rect.left, window.innerWidth - width - 4)),
 			top: rect.bottom + 6

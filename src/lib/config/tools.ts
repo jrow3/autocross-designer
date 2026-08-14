@@ -10,6 +10,9 @@ export interface ToolDef {
 	multiStep?: boolean;
 	cursor?: string;
 	imageModeOnly?: boolean;
+	// Letter shortcut, consulted before the digit map. Universal tools use these;
+	// mode tools may claim one when a digit is too obscure.
+	hotkey?: string;
 }
 
 // Array order within a mode = toolbar order = digit shortcut (1-9).
@@ -150,7 +153,8 @@ export const TOOL_DEFS: ToolDef[] = [
 		label: 'Select',
 		description: 'Click or drag a box to select elements, then drag to move or press Delete.',
 		mode: 'universal',
-		cursor: 'default'
+		cursor: 'default',
+		hotkey: 'v'
 	},
 	{
 		tool: 'measure',
@@ -158,6 +162,7 @@ export const TOOL_DEFS: ToolDef[] = [
 		description: 'Click two points to measure the distance in feet; clicks near cones snap to them.',
 		mode: 'universal',
 		multiStep: true,
-		cursor: 'crosshair'
+		cursor: 'crosshair',
+		hotkey: 'm'
 	}
 ];

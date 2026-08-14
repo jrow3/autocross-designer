@@ -2,10 +2,10 @@ import type { Tool } from '$lib/stores/toolStore.svelte';
 import type { ModeId } from './modes';
 import { TOOL_DEFS } from './tools';
 
-export const UNIVERSAL_KEY_MAP: Record<string, Tool> = {
-	v: 'select',
-	m: 'measure'
-};
+// Letter shortcuts derived from ToolDef.hotkey — consulted before the digit map.
+export const UNIVERSAL_KEY_MAP: Record<string, Tool> = Object.fromEntries(
+	TOOL_DEFS.filter((def) => def.hotkey).map((def) => [def.hotkey as string, def.tool])
+);
 
 // Digit shortcuts for a mode, derived from TOOL_DEFS order within that mode: index + 1.
 export function digitMapFor(mode: ModeId): Record<string, Tool> {
@@ -24,7 +24,8 @@ export function shortcutLabel(tool: Tool, mode: ModeId): string | undefined {
 	void mode;
 	const def = TOOL_DEFS.find((d) => d.tool === tool);
 	if (!def) return undefined;
-	if (def.mode === 'universal') return tool === 'select' ? 'V' : 'M';
+	if (def.hotkey) return def.hotkey.toUpperCase();
+	if (def.mode === 'universal') return undefined;
 	const digit = Object.entries(digitMapFor(def.mode)).find(([, t]) => t === tool);
 	return digit?.[0];
 }

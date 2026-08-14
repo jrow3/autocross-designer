@@ -2,17 +2,12 @@
 	import { courseStore } from '$lib/stores/courseStore.svelte';
 	import ModeSwitcher from './ModeSwitcher.svelte';
 	import ViewPanel from './ViewPanel.svelte';
+	import ExportsMenu from './ExportsMenu.svelte';
 	import Button from './ui/Button.svelte';
-	import Menu from './ui/Menu.svelte';
 	import { tooltip } from './ui/tooltip';
 	import Undo2 from '@lucide/svelte/icons/undo-2';
 	import Redo2 from '@lucide/svelte/icons/redo-2';
 	import CircleHelp from '@lucide/svelte/icons/circle-help';
-	import FileDown from '@lucide/svelte/icons/file-down';
-	import Download from '@lucide/svelte/icons/download';
-	import FileImage from '@lucide/svelte/icons/file-image';
-	import Printer from '@lucide/svelte/icons/printer';
-	import Upload from '@lucide/svelte/icons/upload';
 
 	let {
 		onsave,
@@ -30,11 +25,6 @@
 		onhelp: () => void;
 	} = $props();
 </script>
-
-{#snippet exportIcon()}<Download size={14} />{/snippet}
-{#snippet svgIcon()}<FileImage size={14} />{/snippet}
-{#snippet printIcon()}<Printer size={14} />{/snippet}
-{#snippet importIcon()}<Upload size={14} />{/snippet}
 
 <header class="top-bar">
 	<div class="brand-group">
@@ -75,17 +65,7 @@
 		</span>
 		<div class="separator"></div>
 		<ViewPanel />
-		<Menu
-			label="File"
-			items={[
-				{ label: 'Export course (.json)', icon: exportIcon, onselect: onexport },
-				{ label: 'Export SVG (.svg)', icon: svgIcon, onselect: onexportsvg },
-				{ label: 'Print / PDF…', icon: printIcon, onselect: onprint },
-				{ label: 'Import course (.json)', icon: importIcon, onselect: onimport }
-			]}
-		>
-			{#snippet icon()}<FileDown size={14} />{/snippet}
-		</Menu>
+		<ExportsMenu {onexport} {onexportsvg} {onprint} {onimport} />
 		<Button variant="primary" size="sm" onclick={onsave}>Save & Share</Button>
 	</div>
 </header>

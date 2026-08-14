@@ -1,12 +1,12 @@
 <script lang="ts">
 	import TopBar from '$lib/components/TopBar.svelte';
-	import ModeToolbar from '$lib/components/ModeToolbar.svelte';
+	import ToolRail from '$lib/components/ToolRail.svelte';
 	import EditorCanvas from '$lib/components/canvas/EditorCanvas.svelte';
-	import ToolStatus from '$lib/components/ToolStatus.svelte';
 	import OnboardingHints from '$lib/components/OnboardingHints.svelte';
 	import VenuePanel from '$lib/components/VenuePanel.svelte';
 	import AnnotationListPanel from '$lib/components/AnnotationListPanel.svelte';
-	import SharePanel from '$lib/components/SharePanel.svelte';
+	import PanelDock from '$lib/components/PanelDock.svelte';
+	import StatusBar from '$lib/components/StatusBar.svelte';
 	import SaveShareDialog from '$lib/components/SaveShareDialog.svelte';
 	import PrintDialog from '$lib/components/PrintDialog.svelte';
 	import HelpDialog from '$lib/components/HelpDialog.svelte';
@@ -44,34 +44,34 @@
 		onexportsvg={() => downloadSVG(courseStore.course)}
 		onhelp={() => (showHelpDialog = true)}
 	/>
-	<ModeToolbar onloadvenue={() => (showVenuePanel = true)} />
 	<div class="main-row">
+		<ToolRail onloadvenue={() => (showVenuePanel = true)} />
 		<div class="map-wrapper">
 			<EditorCanvas bind:this={editorCanvas} />
-			<ToolStatus />
 			<OnboardingHints />
 			{#if showVenuePanel}
 				<VenuePanel onclose={() => (showVenuePanel = false)} />
 			{/if}
 			<AnnotationListPanel />
 		</div>
-		<SharePanel
+		<PanelDock
 			onsave={() => (showSaveDialog = true)}
 			onexport={() => exportJSON(courseStore.course)}
 			onimport={() => fileInput.click()}
 			onprint={() => (showPrintDialog = true)}
 			onexportsvg={() => downloadSVG(courseStore.course)}
 			onfitcourse={(data) => editorCanvas?.fitBoundsToCourse(data)}
-			oncourseopened={(course) => activeCourse = course}
+			oncourseopened={(course) => (activeCourse = course)}
 		/>
 	</div>
+	<StatusBar />
 </div>
 
 {#if showSaveDialog}
 	<SaveShareDialog
 		existingCourse={activeCourse}
 		onclose={() => (showSaveDialog = false)}
-		onsaved={(course) => activeCourse = course}
+		onsaved={(course) => (activeCourse = course)}
 	/>
 {/if}
 
@@ -104,7 +104,7 @@
 		flex: 1;
 		position: relative;
 		display: flex;
-		margin: var(--space-2) 0 var(--space-2) var(--space-2);
+		margin: var(--space-2);
 		border: 1px solid var(--border);
 		border-radius: var(--radius-lg);
 		overflow: hidden;
