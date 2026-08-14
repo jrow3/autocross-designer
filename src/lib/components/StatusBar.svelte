@@ -1,8 +1,10 @@
 <script lang="ts">
 	import { toolStore } from '$lib/stores/toolStore.svelte';
 	import { courseStore } from '$lib/stores/courseStore.svelte';
+	import { mapStore } from '$lib/stores/mapStore.svelte';
+	import { simStore } from '$lib/stores/simStore.svelte';
 	import { TOOL_DEFS } from '$lib/config/tools';
-	import { drivingLineLengthFeet } from '$lib/engine/courseStats';
+	import { splineLengthFeet } from '$lib/engine/courseStats';
 
 	let activeDef = $derived(TOOL_DEFS.find((d) => d.tool === toolStore.activeTool));
 
@@ -12,11 +14,14 @@
 			(activeDef ? `${activeDef.label} — ${activeDef.description.split('.')[0]}` : '')
 	);
 
-	let lengthLabel = $derived(
-		courseStore.course.drivingLine.length >= 2
-			? `${drivingLineLengthFeet(courseStore.course).toFixed(0)} ft`
-			: '—'
-	);
+	let lengthLabel = $derived.by(() => {
+		if (simStore.result) return `${simStore.result.lengthFt.toFixed(0)} ft`;
+		if (courseStore.course.drivingLine.length < 2) return '—';
+		const len = splineLengthFeet(courseStore.course, mapStore.mode, mapStore.feetPerPixel ?? undefined);
+		return len == null ? '—' : `${len.toFixed(0)} ft`;
+	});
+
+	let timeLabel = $derived(simStore.result ? `${simStore.result.timeSec.toFixed(1)} s` : '—');
 </script>
 
 <footer class="status-bar">
@@ -26,6 +31,7 @@
 	</div>
 	<div class="stats">
 		<span class="stat"><span class="stat-label">Line</span> <span class="stat-value">{lengthLabel}</span></span>
+		<span class="stat"><span class="stat-label">Est</span> <span class="stat-value">{timeLabel}</span></span>
 		<span class="stat"><span class="stat-label">Cones</span> <span class="stat-value">{courseStore.course.cones.length}</span></span>
 		<span class="stat"><span class="stat-label">Workers</span> <span class="stat-value">{courseStore.course.workers.length}</span></span>
 		<span class="stat"><span class="stat-label">Zones</span> <span class="stat-value">{courseStore.course.workerZones.length}</span></span>

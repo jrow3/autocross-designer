@@ -10,7 +10,9 @@
 	import SaveShareDialog from '$lib/components/SaveShareDialog.svelte';
 	import PrintDialog from '$lib/components/PrintDialog.svelte';
 	import HelpDialog from '$lib/components/HelpDialog.svelte';
+	import { onMount } from 'svelte';
 	import { courseStore } from '$lib/stores/courseStore.svelte';
+	import { simStore } from '$lib/stores/simStore.svelte';
 	import { deserialize } from '$lib/engine/courseSerializer';
 	import { exportJSON, importJSON } from '$lib/services/jsonExport';
 	import { downloadSVG } from '$lib/engine/svgExport';
@@ -24,6 +26,8 @@
 	let showVenuePanel = $state(false);
 	let activeCourse = $state<SavedCourse | null>(null);
 	let fileInput: HTMLInputElement;
+
+	onMount(() => simStore.init());
 
 	async function handleImport(e: Event) {
 		const file = (e.target as HTMLInputElement).files?.[0];

@@ -37,6 +37,7 @@ export const MODES: ModeDef[] = [
 			'cones',
 			'workers',
 			'drivingLine',
+			'speedLine',
 			'measurements',
 			'notes',
 			'courseOutline',

@@ -1,8 +1,9 @@
 <script lang="ts">
 	import { courseStore } from '$lib/stores/courseStore.svelte';
 	import { layerStore } from '$lib/stores/layerStore.svelte';
+	import { mapStore } from '$lib/stores/mapStore.svelte';
 	import type { LayerKey } from '$lib/stores/layerStore.svelte';
-	import { drivingLineLengthFeet } from '$lib/engine/courseStats';
+	import { splineLengthFeet } from '$lib/engine/courseStats';
 	import type { SavedCourse } from '$lib/services/courseService';
 	import type { CourseData } from '$lib/types/course';
 	import MyCourses from '../MyCourses.svelte';
@@ -33,7 +34,8 @@
 
 	function lineLength(): string {
 		if (courseStore.course.drivingLine.length < 2) return '-- ft';
-		return `${drivingLineLengthFeet(courseStore.course).toFixed(0)} ft`;
+		const len = splineLengthFeet(courseStore.course, mapStore.mode, mapStore.feetPerPixel ?? undefined);
+		return len == null ? 'needs scale' : `${len.toFixed(0)} ft`;
 	}
 
 	function toggleLayer(key: LayerKey) {

@@ -5,6 +5,7 @@
 	import type { SavedCourse } from '$lib/services/courseService';
 	import type { CourseData } from '$lib/types/course';
 	import CoursePanel from './panels/CoursePanel.svelte';
+	import StatsPanel from './panels/StatsPanel.svelte';
 	import EmptyState from './ui/EmptyState.svelte';
 	import ShieldCheck from '@lucide/svelte/icons/shield-check';
 	import BarChart3 from '@lucide/svelte/icons/bar-chart-3';
@@ -86,7 +87,7 @@
 			{:else if activeTab === 'findings'}
 				<EmptyState message="Compliance checks are coming soon" hint="Rules will validate gates, speeds, and spacing as you design." />
 			{:else if activeTab === 'stats'}
-				<EmptyState message="Course stats are coming soon" hint="Length, estimated run time, and speeds will appear here." />
+				<StatsPanel />
 			{:else if activeTab === 'generator'}
 				<EmptyState message="Course generator is coming soon" hint="Draw a driving line, then generate a cone layout from it." />
 			{/if}

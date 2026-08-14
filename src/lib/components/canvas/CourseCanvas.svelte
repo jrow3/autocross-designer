@@ -9,6 +9,7 @@
 	import WorkerMarker from '../WorkerMarker.svelte';
 	import NoteMarker from '../NoteMarker.svelte';
 	import DrivingLine from '../DrivingLine.svelte';
+	import SpeedLineOverlay from './SpeedLineOverlay.svelte';
 	import MeasurementOverlay from '../MeasurementOverlay.svelte';
 	import OutlineOverlay from '../OutlineOverlay.svelte';
 	import StagingOverlay from '../StagingOverlay.svelte';
@@ -75,6 +76,9 @@
 	{/if}
 	{#if layerStore.isVisible('drivingLine')}
 		<DrivingLine />
+	{/if}
+	{#if layerStore.isVisible('speedLine')}
+		<SpeedLineOverlay />
 	{/if}
 	{#if layerStore.isVisible('measurements')}
 		<MeasurementOverlay bind:this={measurementOverlay} />

@@ -3,6 +3,7 @@
 	import { mapStore } from '$lib/stores/mapStore.svelte';
 	import { courseStore } from '$lib/stores/courseStore.svelte';
 	import { layerStore } from '$lib/stores/layerStore.svelte';
+	import { simStore } from '$lib/stores/simStore.svelte';
 	import { setEditCopyHandoff, setFitCourseOnLoad, setSkipBanner } from '$lib/services/handoff';
 	import Copy from '@lucide/svelte/icons/copy';
 	import Button from './ui/Button.svelte';
@@ -17,6 +18,7 @@
 		{ key: 'workers' as const, label: 'Workers' },
 		{ key: 'notes' as const, label: 'Notes' },
 		{ key: 'drivingLine' as const, label: 'Driving Line' },
+		{ key: 'speedLine' as const, label: 'Speed Line' },
 		{ key: 'measurements' as const, label: 'Measurements' },
 		{ key: 'courseOutline' as const, label: 'Course Outline' },
 		{ key: 'stagingAreas' as const, label: 'Staging Areas' },
@@ -34,6 +36,7 @@
 	onMount(() => {
 		mapStore.setMode('map');
 		canvas?.initMapMode();
+		return simStore.init();
 	});
 </script>
 
