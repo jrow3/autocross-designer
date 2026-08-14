@@ -15,7 +15,8 @@
 		onimport,
 		onprint,
 		onexportsvg,
-		onhelp
+		onhelp,
+		onnewtemplate
 	}: {
 		onsave: () => void;
 		onexport: () => void;
@@ -23,6 +24,7 @@
 		onprint: () => void;
 		onexportsvg: () => void;
 		onhelp: () => void;
+		onnewtemplate: () => void;
 	} = $props();
 </script>
 
@@ -65,7 +67,7 @@
 		</span>
 		<div class="separator"></div>
 		<ViewPanel />
-		<ExportsMenu {onexport} {onexportsvg} {onprint} {onimport} />
+		<ExportsMenu {onexport} {onexportsvg} {onprint} {onimport} {onnewtemplate} />
 		<Button variant="primary" size="sm" onclick={onsave}>Save & Share</Button>
 	</div>
 </header>
